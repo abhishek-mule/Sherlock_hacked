@@ -1,4 +1,4 @@
-feat(core): Transform Sherlock into a modern mobile app experience ✨
+Sherlock ✨
 
 🔍 Search Enhancements:
 - Implemented advanced student filtering algorithm
