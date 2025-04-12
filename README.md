@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="https://ideogram.ai/assets/progressive-image/balanced/response/VEdyXdFCQo-I4KyTbDjWpw" alt="Sherlock Logo" width="150"/>
+</p>
+# 🔍 Sherlock
+**OSINT Tool for Public Student Information**
+
 Sherlock ✨
 
 🔍 Search Enhancements:
