@@ -7,7 +7,7 @@ import { StudentCard } from '@/components/student-card';
 import { EnhancedStudentCard } from '@/components/enhanced-student-card';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Button } from '@/components/ui/button';
-import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail } from 'lucide-react';
+import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail, FileText, AlertCircle, CheckCircle2, Database, User } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { supabase, Student } from '@/lib/supabase';
 import { CSVImport } from '@/components/csv-import';
@@ -16,6 +16,12 @@ import { signOut } from '@/lib/session';
 import { toast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AllStudentInfo } from '@/components/all-student-info';
+import { Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { performOSINTLookup, generateMockOSINTData, OSINTResult } from '@/components/OSINTDashboard';
+import { Input } from '@/components/ui/input';
+import React from 'react';
 
 // Add dynamic rendering config
 export const dynamic = 'force-dynamic';
@@ -27,7 +33,14 @@ export default function Home() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showOsint, setShowOsint] = useState(false);
   const [osintStudent, setOsintStudent] = useState<Student | null>(null);
+  const [osintResults, setOsintResults] = useState<any>(null);
+  const [osintLoading, setOsintLoading] = useState(false);
+  const [osintError, setOsintError] = useState<string | null>(null);
   const [socialProfiles, setSocialProfiles] = useState<any[]>([]);
+  const [emailLookupInput, setEmailLookupInput] = useState('');
+  const [lookupResults, setLookupResults] = useState<any>(null);
+  const [isLookupLoading, setIsLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
 
@@ -251,10 +264,85 @@ export default function Home() {
     setSelectedStudent(null);
   };
 
-  const showOsintModal = (student: Student) => {
+  const showOsintModal = async (student: Student) => {
     setOsintStudent(student);
+    setOsintResults(null);
+    setOsintError(null);
     generateSocialProfiles(student);
     setShowOsint(true);
+    
+    // Only perform OSINT search if student has an email
+    if (student.email) {
+      setOsintLoading(true);
+      try {
+        // First try using our internal API
+        try {
+          const response = await fetch('/api/osint/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: student.email }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setOsintResults(data);
+            setOsintLoading(false);
+            return; // Successfully got data from internal API
+          }
+        } catch (internalError) {
+          console.warn('Internal OSINT API failed, falling back to direct lookup:', internalError);
+        }
+        
+        // Fallback to direct lookup using performOSINTLookup
+        console.log('Using fallback OSINT lookup for:', student.email);
+        const osintData: OSINTResult = await performOSINTLookup(student.email);
+        
+        if (osintData.error) {
+          throw new Error(osintData.error);
+        }
+        
+        // Convert the data format to match what the UI expects
+        const processedData = {
+          professional_info: {
+            domain: student.email.split('@')[1] || '',
+            linkedin: {
+              company_info: osintData.company ? [
+                {
+                  name: osintData.company.name,
+                  industry: osintData.company.industry || 'Unknown',
+                  size: osintData.company?.employeeCount?.toString() || 'Unknown',
+                  location: osintData.company.headquarter ? 
+                    `${osintData.company.headquarter.city}, ${osintData.company.headquarter.geographicArea}` : 
+                    'Unknown'
+                }
+              ] : [],
+              people_results: [
+                {
+                  name: `${osintData.person?.firstName || ''} ${osintData.person?.lastName || ''}`,
+                  title: osintData.person?.headline || '',
+                  company: osintData.person?.positions?.positionHistory?.[0]?.companyName || '',
+                  location: osintData.person?.location || ''
+                }
+              ]
+            },
+            social_profiles: osintData.person?.socialProfiles?.map((profile) => ({
+              platform: profile.platform,
+              url: profile.url,
+              username: profile.username
+            })) || []
+          }
+        };
+        
+        setOsintResults(processedData);
+      } catch (error) {
+        console.error('OSINT search error:', error);
+        setOsintError('Failed to retrieve OSINT data. Please try again later.');
+      } finally {
+        setOsintLoading(false);
+      }
+    }
   };
 
   const generateSocialProfiles = (student: Student) => {
@@ -324,6 +412,261 @@ export default function Home() {
     ];
     
     setSocialProfiles(profiles);
+  };
+
+  const handleEmailLookup = async () => {
+    if (!emailLookupInput) {
+      setLookupError('Please enter an email address');
+      return;
+    }
+
+    // Email regex validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailLookupInput)) {
+      setLookupError('Please enter a valid email address');
+      return;
+    }
+
+    setIsLookupLoading(true);
+    setLookupError(null);
+    setLookupResults(null);
+
+    try {
+      // Try using the enrichment API directly
+      const response = await fetch(`/api/enrichment?email=${encodeURIComponent(emailLookupInput)}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLookupResults(data);
+      } else {
+        // If API call fails, use performOSINTLookup function
+        console.warn('API lookup failed, using fallback method');
+        const osintData = await performOSINTLookup(emailLookupInput);
+        
+        if (osintData.error) {
+          throw new Error(osintData.error);
+        }
+        
+        setLookupResults(osintData);
+      }
+    } catch (error: any) {
+      console.error('Email lookup error:', error);
+      setLookupError(error.message || 'Failed to lookup email');
+    } finally {
+      setIsLookupLoading(false);
+    }
+  };
+
+  const renderEmailLookup = () => {
+    // Create the content element outside of ClientOnly
+    const emailLookupContent = (
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold flex items-center">
+            <Mail className="h-5 w-5 mr-2 text-blue-500" />
+            Reverse Email Lookup
+          </CardTitle>
+          <CardDescription>
+            Find detailed profile information from an email address
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-grow">
+                <Input
+                  type="email"
+                  placeholder="Enter an email address"
+                  value={emailLookupInput}
+                  onChange={(e) => setEmailLookupInput(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <Button 
+                onClick={handleEmailLookup}
+                disabled={isLookupLoading || !emailLookupInput}
+                className={isLookupLoading ? "animate-pulse" : ""}
+              >
+                {isLookupLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Looking up...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Lookup
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {lookupError && (
+              <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-800 dark:text-red-200 flex items-start">
+                <AlertCircle className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
+                <span>{lookupError}</span>
+              </div>
+            )}
+            
+            {lookupResults && (
+              <div className="mt-4 animate-fadeIn">
+                <div className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-800 dark:text-green-200 mb-4 flex items-center">
+                  <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span>Successfully found information for {emailLookupInput}</span>
+                </div>
+                
+                <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="bg-slate-50 dark:bg-slate-800 p-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="font-medium text-slate-900 dark:text-white">
+                      Profile Information
+                    </h3>
+                  </div>
+                  
+                  <div className="p-4 space-y-6">
+                    {/* Person Information */}
+                    {lookupResults.person && (
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        {lookupResults.person.photoUrl && (
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={lookupResults.person.photoUrl} 
+                              alt={`${lookupResults.person.firstName || ''} ${lookupResults.person.lastName || ''}`}
+                              className="w-24 h-24 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700"
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="flex-grow">
+                          <h4 className="text-lg font-medium text-slate-900 dark:text-white">
+                            {lookupResults.person.firstName} {lookupResults.person.lastName}
+                          </h4>
+                          
+                          {lookupResults.person.headline && (
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                              {lookupResults.person.headline}
+                            </p>
+                          )}
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 mt-3">
+                            {lookupResults.person.location && (
+                              <div className="flex items-center text-sm">
+                                <Search className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
+                                <span>{lookupResults.person.location}</span>
+                              </div>
+                            )}
+                            
+                            {lookupResults.person.linkedInUrl && (
+                              <div className="flex items-center text-sm">
+                                <Linkedin className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+                                <a 
+                                  href={lookupResults.person.linkedInUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  LinkedIn Profile
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {lookupResults.person.skills && lookupResults.person.skills.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs text-slate-500 mb-1">Skills:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {lookupResults.person.skills.map((skill: string, index: number) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Company Information */}
+                    {lookupResults.company && (
+                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <h4 className="text-md font-medium text-slate-800 dark:text-slate-200 mb-3">
+                          Company Information
+                        </h4>
+                        
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          {lookupResults.company.logo && (
+                            <div className="flex-shrink-0">
+                              <img 
+                                src={lookupResults.company.logo} 
+                                alt={lookupResults.company.name || 'Company logo'}
+                                className="w-16 h-16 rounded object-contain border border-slate-200 dark:border-slate-700 bg-white p-1"
+                              />
+                            </div>
+                          )}
+                          
+                          <div className="flex-grow">
+                            <h5 className="font-medium text-slate-800 dark:text-slate-200">
+                              {lookupResults.company.name}
+                            </h5>
+                            
+                            {lookupResults.company.industry && (
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Industry: {lookupResults.company.industry}
+                              </p>
+                            )}
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                              {lookupResults.company.websiteUrl && (
+                                <div className="flex items-center text-sm">
+                                  <ExternalLink className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
+                                  <a 
+                                    href={lookupResults.company.websiteUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {lookupResults.company.websiteUrl.replace(/^https?:\/\//, '')}
+                                  </a>
+                                </div>
+                              )}
+                              
+                              {lookupResults.company.linkedInUrl && (
+                                <div className="flex items-center text-sm">
+                                  <Linkedin className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+                                  <a 
+                                    href={lookupResults.company.linkedInUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    Company LinkedIn
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* API Information */}
+                    <div className="text-right text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <p>Credits remaining: {lookupResults.credits_left}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              <p>Try example: bill.gates@microsoft.com or satya@microsoft.com</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+
+    return <ClientOnly>{emailLookupContent}</ClientOnly>;
   };
 
   return (
@@ -404,6 +747,274 @@ export default function Home() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Feature Cards */}
+        <Tabs defaultValue="dashboard" className="w-full mb-8">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="search">Search</TabsTrigger>
+            <TabsTrigger value="osint">OSINT</TabsTrigger>
+            <TabsTrigger value="tools">Tools</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-semibold flex items-center">
+                    <Search className="h-5 w-5 mr-2 text-teal-500" />
+                    Quick Search
+                  </CardTitle>
+                  <CardDescription>Find students by name or ID</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SearchBar onSearch={handleSearch} isSearching={isSearching} />
+                </CardContent>
+                <CardFooter className="pt-2 text-xs text-slate-500">
+                  <p className="flex items-center">
+                    <Search className="h-3 w-3 mr-1" />
+                    Try searching by name, ID, or roll number
+                  </p>
+                </CardFooter>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-semibold flex items-center">
+                    <Database className="h-5 w-5 mr-2 text-indigo-500" />
+                    Advanced Search
+                  </CardTitle>
+                  <CardDescription>Search admission database</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="text-sm">Find detailed student admission records</p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => router.push('/admission-search')}
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    Admission Data
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-semibold flex items-center">
+                    <Mail className="h-5 w-5 mr-2 text-blue-500" />
+                    Email Intelligence
+                  </CardTitle>
+                  <CardDescription>OSINT tools for email discovery</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="text-sm">Find social profiles and verify student information</p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => router.push('/reversecontact-demo')}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email Lookup
+                  </Button>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-semibold flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-amber-500" />
+                    PDF Extract
+                  </CardTitle>
+                  <CardDescription>Extract student data from documents</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => router.push('/pdf-upload')}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF Extraction
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="search" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Search Options</CardTitle>
+                <CardDescription>Find students across multiple data sources</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <SearchBar onSearch={handleSearch} isSearching={isSearching} />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3"
+                    onClick={() => {}}
+                  >
+                    <Search className="h-5 w-5 mr-2 text-teal-500" />
+                    <div className="text-left">
+                      <div className="font-medium">Quick Search</div>
+                      <div className="text-xs text-muted-foreground">Find students by name or ID</div>
+                    </div>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3"
+                    onClick={() => router.push('/admission-search')}
+                  >
+                    <Database className="h-5 w-5 mr-2 text-indigo-500" />
+                    <div className="text-left">
+                      <div className="font-medium">Advanced Search (admission data)</div>
+                      <div className="text-xs text-muted-foreground">Search detailed admission records</div>
+                    </div>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3"
+                    onClick={() => router.push('/reversecontact-demo')}
+                  >
+                    <Mail className="h-5 w-5 mr-2 text-blue-500" />
+                    <div className="text-left">
+                      <div className="font-medium">OSINT (email intelligence)</div>
+                      <div className="text-xs text-muted-foreground">Find social profiles and verify information</div>
+                    </div>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3"
+                    onClick={() => router.push('/pdf-upload')}
+                  >
+                    <FileText className="h-5 w-5 mr-2 text-amber-500" />
+                    <div className="text-left">
+                      <div className="font-medium">PDF Extract</div>
+                      <div className="text-xs text-muted-foreground">Extract student data from documents</div>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="osint" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Email Intelligence Tools</CardTitle>
+                <CardDescription>Find social profiles and verify student information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {renderEmailLookup()}
+                
+                <div className="mt-6 border rounded-lg p-6 bg-gradient-to-r from-teal-50 to-cyan-50">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-bold text-lg text-teal-700 flex items-center">
+                        <Mail className="h-5 w-5 mr-2" />
+                        Reverse Contact API Integration
+                      </h3>
+                      <p className="text-sm text-slate-600 mt-1">
+                        Use the Reverse Contact API for advanced email lookups and identity verification.
+                      </p>
+                    </div>
+                    <Badge className="bg-teal-500">Featured</Badge>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Button
+                      className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                      onClick={() => router.push('/reversecontact-demo')}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Try Email Intelligence
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="tools" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Utility Tools</CardTitle>
+                <CardDescription>Import and extract student data</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-2 text-amber-600" />
+                      PDF Document Processing
+                    </h3>
+                    <p className="text-sm text-slate-500 mb-4">Extract student data from PDF documents</p>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => router.push('/pdf-upload')}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      PDF Upload & Extract
+                    </Button>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-2 flex items-center">
+                      <Database className="h-4 w-4 mr-2 text-blue-600" />
+                      CSV Import
+                    </h3>
+                    <p className="text-sm text-slate-500 mb-4">Import student records from CSV files</p>
+                    <ClientOnly>
+                      <CSVImport />
+                    </ClientOnly>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Add a Quick Action row right after the tabs */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center"
+            onClick={() => router.push('/admission-search')}
+          >
+            <Database className="h-3.5 w-3.5 mr-1.5" />
+            Admission Data
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center"
+            onClick={() => router.push('/pdf-upload')}
+          >
+            <FileText className="h-3.5 w-3.5 mr-1.5" />
+            PDF Extract
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center bg-teal-50"
+            onClick={() => router.push('/reversecontact-demo')}
+          >
+            <Mail className="h-3.5 w-3.5 mr-1.5 text-teal-600" />
+            Email Intelligence
+          </Button>
         </div>
 
         {/* Search Results */}
@@ -496,29 +1107,23 @@ export default function Home() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-            {searchResults.map((student) => (
-                  <div key={student.id} className="relative animate-popIn">
-                    <div className="absolute top-4 right-4 z-10 flex flex-col sm:flex-row gap-2">
+                {searchResults.map((student, index) => (
+                  <div key={index} className="animate-cardEntrance relative" style={{ animationDelay: `${index * 0.05}s` }}>
+                    <div className="absolute top-4 right-4 z-10 flex gap-2">
                       <Button
                         onClick={() => handleShowAllInfo(student)}
                         variant="outline"
                         size="sm"
-                        className="flex items-center space-x-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm mobile-ripple"
+                        className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"
                       >
                         <List className="h-3.5 w-3.5 mr-1.5" />
-                        <span>All Info</span>
-                      </Button>
-                      <Button
-                        onClick={() => showOsintModal(student)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center space-x-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm mobile-ripple"
-                      >
-                        <Fingerprint className="h-3.5 w-3.5 mr-1.5" />
-                        <span>OSINT</span>
+                        All Info
                       </Button>
                     </div>
-                    <EnhancedStudentCard student={student} />
+                    <EnhancedStudentCard 
+                      student={student} 
+                      onOsintLookup={showOsintModal}
+                    />
                   </div>
                 ))}
               </div>
@@ -559,30 +1164,42 @@ export default function Home() {
 
       {/* All Student Information Modal */}
       {showAllInfo && selectedStudent && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto animate-fadeIn">
-          <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-700 animate-popIn mobile-scrollview">
-              <div className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 animate-popIn">
+            <div className="sticky top-0 bg-white dark:bg-slate-900 z-10 p-4 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center">
+                <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-2 rounded-lg mr-3">
+                  <User className="h-6 w-6 text-white" />
+                </div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Complete Information: {selectedStudent.name} {selectedStudent.surname}
+                  {selectedStudent.name} {selectedStudent.surname} - Complete Information
                 </h2>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={handleCloseAllInfo}
-                  className="mobile-ripple rounded-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                >
-                  <div className="h-6 w-6 flex items-center justify-center">✕</div>
-                </Button>
               </div>
-              
-              <div className="p-6">
-                <AllStudentInfo student={selectedStudent} />
-              </div>
-              
-              <div className="sticky bottom-0 bg-white dark:bg-slate-900 z-10 p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
-                <Button onClick={handleCloseAllInfo} className="mobile-ripple">Close</Button>
-              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleCloseAllInfo}
+                className="mobile-ripple rounded-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              >
+                <div className="h-6 w-6 flex items-center justify-center">✕</div>
+              </Button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <AllStudentInfo student={selectedStudent} />
+            </div>
+            
+            <div className="sticky bottom-0 bg-white dark:bg-slate-900 z-10 p-4 border-t border-slate-200 dark:border-slate-700 flex justify-between">
+              <Button 
+                variant="outline" 
+                onClick={() => showOsintModal(selectedStudent)}
+                className="mobile-ripple"
+                disabled={!selectedStudent.email}
+              >
+                <Fingerprint className="h-4 w-4 mr-2" />
+                OSINT Lookup
+              </Button>
+              <Button onClick={handleCloseAllInfo} className="mobile-ripple">Close</Button>
             </div>
           </div>
         </div>
@@ -596,7 +1213,7 @@ export default function Home() {
               <div className="flex items-center">
                 <Fingerprint className="h-6 w-6 mr-2" />
                 <h2 className="text-xl font-bold">
-                  Social Media Profiles
+                  {osintLoading ? 'Gathering Intelligence...' : 'Social Media Profiles'}
                 </h2>
               </div>
               <Button 
@@ -635,13 +1252,139 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Loading state */}
+              {osintLoading && (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <Loader2 className="h-10 w-10 text-teal-500 animate-spin mb-4" />
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Searching social networks and professional databases...
+                  </p>
+                </div>
+              )}
+
+              {/* Error state */}
+              {osintError && !osintLoading && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6 animate-swipeUp">
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    {osintError}
+                  </p>
+                </div>
+              )}
+
+              {/* Results from OSINT API */}
+              {osintResults && !osintLoading && (
+                <>
+                  {/* Domain Info */}
+                  {osintResults.professional_info?.domain && (
+                    <div className="mb-6 animate-swipeUp" style={{animationDelay: '0.1s'}}>
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-3">
+                        Domain Information
+                      </h3>
+                      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+                        <p className="text-slate-700 dark:text-slate-300">
+                          <span className="font-medium">Domain:</span> {osintResults.professional_info.domain}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LinkedIn Results */}
+                  {osintResults.professional_info?.linkedin && (
+                    <div className="mb-6 animate-swipeUp" style={{animationDelay: '0.15s'}}>
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-3">
+                        Professional Information
+                      </h3>
+                      
+                      {/* Company Info */}
+                      {osintResults.professional_info.linkedin.company_info && osintResults.professional_info.linkedin.company_info.length > 0 && (
+                        <div className="mb-4">
+                          <h4 className="text-md font-medium text-slate-800 dark:text-slate-200 mb-2">
+                            Related Companies
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {osintResults.professional_info.linkedin.company_info.map((company: any, index: number) => (
+                              <div key={index} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                                <p className="font-medium text-slate-900 dark:text-slate-100">{company.name || 'Unknown Company'}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Industry: {company.industry || 'N/A'}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Size: {company.size || 'N/A'}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Location: {company.location || 'N/A'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* People Results */}
+                      {osintResults.professional_info.linkedin.people_results && osintResults.professional_info.linkedin.people_results.length > 0 && (
+                        <div>
+                          <h4 className="text-md font-medium text-slate-800 dark:text-slate-200 mb-2">
+                            Related People
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {osintResults.professional_info.linkedin.people_results.map((person: any, index: number) => (
+                              <div key={index} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                                <p className="font-medium text-slate-900 dark:text-slate-100">{person.name || 'Unknown Person'}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Title: {person.title || 'N/A'}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Company: {person.company || 'N/A'}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Location: {person.location || 'N/A'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Social Media Profiles */}
+                  {osintResults.professional_info?.social_profiles && osintResults.professional_info.social_profiles.length > 0 ? (
+                    <div className="mb-6 animate-swipeUp" style={{animationDelay: '0.2s'}}>
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-3">
+                        Verified Social Media Profiles
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {osintResults.professional_info.social_profiles.map((profile: any, index: number) => (
+                          <a
+                            key={index}
+                            href={profile.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 hover:shadow-md transition-shadow"
+                          >
+                            <div className="bg-blue-500 rounded-full w-10 h-10 flex items-center justify-center text-white mr-3">
+                              {profile.platform === 'GitHub' ? 'GH' : 
+                               profile.platform === 'Twitter' ? 'TW' : 
+                               profile.platform === 'LinkedIn' ? 'LI' : '?'}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900 dark:text-slate-100">{profile.platform}</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-400">@{profile.username}</p>
+                            </div>
+                            <div className="ml-auto">
+                              <ExternalLink className="h-4 w-4 text-slate-400" />
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : !osintLoading && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6 animate-swipeUp" style={{animationDelay: '0.2s'}}>
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        No verified social media profiles were found based on this email address. Showing potential profiles based on the student&apos;s name instead.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Warning notice */}
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-6 animate-swipeUp" style={{animationDelay: '0.1s'}}>
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  These are potential social media profiles based on this student&apos;s name. The actual profiles may differ.
+                  These are potential social media profiles based on this student&apos;s information. 
                   Always verify identity before drawing any conclusions.
                 </p>
               </div>
 
+              {/* Name-based profiles if no email results or as additional information */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {socialProfiles.map((profile, index) => (
                   <a

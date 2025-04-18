@@ -52,6 +52,13 @@ export default function MenuPage() {
       color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400" 
     },
     { 
+      icon: <Database className="h-5 w-5" />, 
+      label: "Admission Data", 
+      description: "Search through admission records",
+      action: () => router.push('/admission-search'),
+      color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" 
+    },
+    { 
       icon: <User className="h-5 w-5" />, 
       label: "Profile", 
       description: "View and edit your profile",
@@ -64,16 +71,6 @@ export default function MenuPage() {
       description: "Configure app preferences",
       action: () => router.push('/settings'),
       color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400" 
-    },
-    { 
-      icon: <Database className="h-5 w-5" />, 
-      label: "Data Management", 
-      description: "Import and export data",
-      action: () => toast({
-        title: "Coming Soon",
-        description: "This feature will be available in a future update.",
-      }),
-      color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" 
     },
     { 
       icon: <BookOpen className="h-5 w-5" />, 

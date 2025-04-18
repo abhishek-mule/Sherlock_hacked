@@ -1,10 +1,10 @@
 import React from 'react';
-import { Home, Search, User, Settings, Menu } from 'lucide-react';
+import { Home, Search, User, Settings, Menu, Database, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export function BottomNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 safe-area-inset-bottom">
@@ -24,6 +24,42 @@ export function BottomNav() {
                 <Home className="h-5 w-5" />
                 <span className="font-medium">Home</span>
               </Link>
+              
+              <Link 
+                href="/search" 
+                className={`flex items-center space-x-2 transition-colors ${
+                  pathname === "/search" 
+                    ? 'text-teal-600 dark:text-teal-400' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400'
+                }`}
+              >
+                <Search className="h-5 w-5" />
+                <span className="font-medium">Search</span>
+              </Link>
+              
+              <Link 
+                href="/admission-search" 
+                className={`flex items-center space-x-2 transition-colors ${
+                  pathname === "/admission-search" 
+                    ? 'text-teal-600 dark:text-teal-400' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400'
+                }`}
+              >
+                <Database className="h-5 w-5" />
+                <span className="font-medium">Admission Data</span>
+              </Link>
+              
+              <Link 
+                href="/reversecontact-demo" 
+                className={`flex items-center space-x-2 transition-colors ${
+                  pathname.includes("reversecontact-demo")
+                    ? 'text-teal-600 dark:text-teal-400' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400'
+                }`}
+              >
+                <Mail className="h-5 w-5" />
+                <span className="font-medium">Email Lookup</span>
+              </Link>
             </div>
             
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -34,95 +70,58 @@ export function BottomNav() {
       </div>
 
       {/* Mobile app-like bottom navigation */}
-      <div className="md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-700 shadow-lg">
-        <nav className="flex items-center justify-around py-3 px-2">
-          <Link
-            href="/"
-            className={`mobile-ripple flex flex-col items-center justify-center min-w-[60px] py-1 px-2 rounded-xl transition-colors ${
-              pathname === "/"
-                ? "text-teal-600 dark:text-teal-400"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300"
+      <div className="md:hidden bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 shadow-lg">
+        <div className="grid grid-cols-5 h-16">
+          <Link 
+            href="/" 
+            className={`flex flex-col items-center justify-center ${
+              pathname === "/" ? 'text-teal-600 dark:text-teal-400' : 'text-slate-600 dark:text-slate-400'
             }`}
           >
-            <Home
-              className={`w-6 h-6 mb-1 transition-all ${
-                pathname === "/" ? "stroke-[2.5px]" : "stroke-[1.5px]"
-              }`}
-            />
-            <span className="text-xs font-medium">Home</span>
-            {pathname === "/" && (
-              <div className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-teal-500 dark:bg-teal-400" />
-            )}
+            <Home className="h-5 w-5" />
+            <span className="text-xs mt-1">Home</span>
           </Link>
           
-          <Link
-            href="/search"
-            className={`mobile-ripple flex flex-col items-center justify-center min-w-[60px] py-1 px-2 rounded-xl transition-colors ${
-              pathname === "/search"
-                ? "text-teal-600 dark:text-teal-400"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300"
+          <Link 
+            href="/search" 
+            className={`flex flex-col items-center justify-center ${
+              pathname === "/search" ? 'text-teal-600 dark:text-teal-400' : 'text-slate-600 dark:text-slate-400'
             }`}
           >
-            <Search
-              className={`w-6 h-6 mb-1 transition-all ${
-                pathname === "/search" ? "stroke-[2.5px]" : "stroke-[1.5px]"
-              }`}
-            />
-            <span className="text-xs font-medium">Search</span>
-            {pathname === "/search" && (
-              <div className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-teal-500 dark:bg-teal-400" />
-            )}
+            <Search className="h-5 w-5" />
+            <span className="text-xs mt-1">Search</span>
           </Link>
           
-          {/* Floating Action Button */}
-          <div className="relative -mt-8">
-            <Link
-              href="/profile"
-              className="mobile-ripple flex flex-col items-center justify-center bg-gradient-to-r from-teal-500 to-cyan-500 text-white p-4 rounded-full shadow-lg"
-            >
-              <User className="w-7 h-7" />
-              <span className="sr-only">Profile</span>
-            </Link>
-          </div>
-          
-          <Link
-            href="/settings"
-            className={`mobile-ripple flex flex-col items-center justify-center min-w-[60px] py-1 px-2 rounded-xl transition-colors ${
-              pathname === "/settings"
-                ? "text-teal-600 dark:text-teal-400"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300"
+          <Link 
+            href="/admission-search" 
+            className={`flex flex-col items-center justify-center ${
+              pathname === "/admission-search" ? 'text-teal-600 dark:text-teal-400' : 'text-slate-600 dark:text-slate-400'
             }`}
           >
-            <Settings
-              className={`w-6 h-6 mb-1 transition-all ${
-                pathname === "/settings" ? "stroke-[2.5px]" : "stroke-[1.5px]"
-              }`}
-            />
-            <span className="text-xs font-medium">Settings</span>
-            {pathname === "/settings" && (
-              <div className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-teal-500 dark:bg-teal-400" />
-            )}
+            <Database className="h-5 w-5" />
+            <span className="text-xs mt-1">Admission</span>
           </Link>
           
-          <Link
-            href="/menu"
-            className={`mobile-ripple flex flex-col items-center justify-center min-w-[60px] py-1 px-2 rounded-xl transition-colors ${
-              pathname === "/menu"
-                ? "text-teal-600 dark:text-teal-400"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300"
+          <Link 
+            href="/reversecontact-demo" 
+            className={`flex flex-col items-center justify-center ${
+              pathname.includes("reversecontact-demo") ? 'text-teal-600 dark:text-teal-400' : 'text-slate-600 dark:text-slate-400'
             }`}
           >
-            <Menu
-              className={`w-6 h-6 mb-1 transition-all ${
-                pathname === "/menu" ? "stroke-[2.5px]" : "stroke-[1.5px]"
-              }`}
-            />
-            <span className="text-xs font-medium">Menu</span>
-            {pathname === "/menu" && (
-              <div className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-teal-500 dark:bg-teal-400" />
-            )}
+            <Mail className="h-5 w-5" />
+            <span className="text-xs mt-1">Email</span>
           </Link>
-        </nav>
+          
+          <Link 
+            href="/settings" 
+            className={`flex flex-col items-center justify-center ${
+              pathname === "/settings" ? 'text-teal-600 dark:text-teal-400' : 'text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            <Settings className="h-5 w-5" />
+            <span className="text-xs mt-1">Settings</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

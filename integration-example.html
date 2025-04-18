@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student PDF Search Integration Example</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: #343a40;
+            color: white;
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+        
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        nav li {
+            margin-left: 20px;
+        }
+        
+        nav a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        nav a:hover {
+            color: white;
+        }
+        
+        .main-content {
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .content {
+            flex-grow: 1;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            color: #343a40;
+        }
+        
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .btn:hover {
+            background-color: #0069d9;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px 0;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Student Management System</h1>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active">Dashboard</a></li>
+                    <li><a href="#">Students</a></li>
+                    <li><a href="#">Courses</a></li>
+                    <li><a href="#">Reports</a></li>
+                    <li><a href="#">Settings</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>Quick Menu</h3>
+                <ul>
+                    <li><a href="#">View All Students</a></li>
+                    <li><a href="#">Add New Student</a></li>
+                    <li><a href="#">Attendance Reports</a></li>
+                    <li><a href="#">Grade Reports</a></li>
+                    <li><a href="#" id="showPdfSearch">PDF Document Search</a></li>
+                </ul>
+            </div>
+            
+            <div class="content">
+                <!-- Main Dashboard Content -->
+                <div id="dashboardContent">
+                    <div class="section-title">
+                        <h2>Dashboard</h2>
+                        <button class="btn">Refresh Data</button>
+                    </div>
+                    
+                    <p>Welcome to the Student Management System. Use the sidebar to navigate.</p>
+                    
+                    <!-- Dashboard widgets would go here -->
+                </div>
+                
+                <!-- PDF Student Search Feature -->
+                <div id="pdfSearchContent" class="hidden">
+                    <div class="section-title">
+                        <h2>PDF Student Search</h2>
+                        <button class="btn" id="backToDashboard">Back to Dashboard</button>
+                    </div>
+                    
+                    <p>Search for student information extracted from PDF documents:</p>
+                    
+                    <!-- PDF Search Component containers -->
+                    <div id="pdf-student-search"></div>
+                    <div id="pdf-search-results"></div>
+                    <div id="pdf-student-details" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Student Management System &copy; 2023</p>
+    </footer>
+    
+    <!-- Include the PDF Student Search script -->
+    <script src="student-search-integration.js"></script>
+    
+    <script>
+        // Initialize the PDF search component when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create an instance of the StudentPdfSearch class
+            const pdfSearch = new StudentPdfSearch({
+                apiUrl: 'http://localhost:8000',
+                onStudentSelect: function(student) {
+                    console.log('Student selected:', student);
+                    // You could add custom behavior when a student is selected
+                }
+            });
+            
+            // Navigation between dashboard and PDF search
+            document.getElementById('showPdfSearch').addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('dashboardContent').classList.add('hidden');
+                document.getElementById('pdfSearchContent').classList.remove('hidden');
+                
+                // Initialize the PDF search if not already done
+                if (!pdfSearch.initialized) {
+                    pdfSearch.init();
+                }
+            });
+            
+            document.getElementById('backToDashboard').addEventListener('click', function() {
+                document.getElementById('pdfSearchContent').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html> 

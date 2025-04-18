@@ -27,6 +27,11 @@ export function AllStudentInfo({ student }: AllStudentInfoProps) {
         { label: 'Category', value: student.category },
         { label: 'Sub-caste', value: student.subcast },
         { label: 'Aadhaar Number', value: student.adhaarNo },
+        // Add physical attributes if available
+        { label: 'Height', value: student.height },
+        { label: 'Weight', value: student.weight },
+        { label: 'Physically Handicapped', value: student.physically_handicapped },
+        { label: 'Sport', value: student.sport_name },
       ]
     },
     {
@@ -41,9 +46,33 @@ export function AllStudentInfo({ student }: AllStudentInfoProps) {
       ]
     },
     {
+      title: 'Contact Information',
+      fields: [
+        { label: 'Permanent Address', value: student.address_permanant },
+        { label: 'City/Village', value: student.city_village_permanant },
+        { label: 'District', value: student.district_permanant },
+        { label: 'State', value: student.state_permanant },
+        { label: 'Local Address', value: student.address_local },
+        { label: 'PIN Code', value: student.pin_local },
+      ]
+    },
+    {
       title: 'Academic Information',
       fields: [
         { label: 'Admission Type', value: student.admissionType },
+        { label: '10th Marks Obtained', value: student.tenth_marks_obtained },
+        { label: '10th Total Marks', value: student.tenth_out_of_marks },
+        { label: '12th Marks Obtained', value: student.twelfth_marks_obtained },
+        { label: '12th Total Marks', value: student.twelfth_out_of_marks },
+        { label: 'Diploma Marks', value: student.diploma_marks_obtained },
+        { label: 'Entrance Exam Percentage', value: student.entrance_exam_percentage },
+      ]
+    },
+    {
+      title: 'Banking Details',
+      fields: [
+        { label: 'Bank Name', value: student.bank_name },
+        { label: 'IFSC Code', value: student.ifsccode },
       ]
     }
   ];
@@ -58,25 +87,31 @@ export function AllStudentInfo({ student }: AllStudentInfoProps) {
     <div className="space-y-8">
       {/* Organized Sections */}
       <div className="space-y-6">
-        {sections.map((section, i) => (
-          <div key={i} className="bg-slate-50 dark:bg-slate-800/30 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">
-              {section.title}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
-              {section.fields.filter(field => field.value).map((field, j) => (
-                <div key={j} className="space-y-1">
-                  <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                    {field.label}:
-                  </dt>
-                  <dd className="text-sm font-medium text-slate-900 dark:text-white">
-                    {field.value || 'Not provided'}
-                  </dd>
-                </div>
-              ))}
+        {sections.map((section, i) => {
+          // Only show sections that have at least one field with a value
+          const fieldsWithValues = section.fields.filter(field => field.value);
+          if (fieldsWithValues.length === 0) return null;
+          
+          return (
+            <div key={i} className="bg-slate-50 dark:bg-slate-800/30 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">
+                {section.title}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+                {fieldsWithValues.map((field, j) => (
+                  <div key={j} className="space-y-1">
+                    <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                      {field.label}:
+                    </dt>
+                    <dd className="text-sm font-medium text-slate-900 dark:text-white">
+                      {field.value || 'Not provided'}
+                    </dd>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* All Raw Data */}
@@ -100,54 +135,6 @@ export function AllStudentInfo({ student }: AllStudentInfoProps) {
               </dd>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Extended Database Schema Fields */}
-      <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">
-          Additional Database Fields
-        </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          The following fields exist in the database schema but may not have data for this student.
-        </p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3">
-            <h4 className="font-medium text-slate-800 dark:text-slate-200 mb-2">Academic Records</h4>
-            <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-              <li>tenth_marks_obtained</li>
-              <li>tenth_out_of_marks</li>
-              <li>twelfth_marks_obtained</li>
-              <li>twelfth_out_of_marks</li>
-              <li>diploma_marks_obtained</li>
-              <li>entrance_exam_percentage</li>
-            </ul>
-          </div>
-          
-          <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3">
-            <h4 className="font-medium text-slate-800 dark:text-slate-200 mb-2">Contact Information</h4>
-            <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-              <li>address_permanant</li>
-              <li>city_village_permanant</li>
-              <li>district_permanant</li>
-              <li>state_permanant</li>
-              <li>address_local</li>
-              <li>pin_local</li>
-            </ul>
-          </div>
-          
-          <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3">
-            <h4 className="font-medium text-slate-800 dark:text-slate-200 mb-2">Other Details</h4>
-            <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-              <li>physically_handicapped</li>
-              <li>height</li>
-              <li>weight</li>
-              <li>bank_name</li>
-              <li>ifsccode</li>
-              <li>sport_name</li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>

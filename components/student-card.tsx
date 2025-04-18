@@ -14,11 +14,14 @@ import {
   Briefcase,
   Users,
   Heart,
-  Tag
+  Tag,
+  Fingerprint
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { performOSINTLookup } from './OSINTDashboard';
+import OsintPopup from './OsintPopup';
 
 interface StudentInfo {
   name: string;
@@ -85,9 +88,22 @@ export function StudentCard({
   const [showOsintDialog, setShowOsintDialog] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic'|'academic'|'family'|'other'>('basic');
+  const [osintData, setOsintData] = useState<any>(null);
+  const [osintLoading, setOsintLoading] = useState(false);
 
   // Format display name properly
   const displayName = `${name || 'N/A'}${surname ? ' ' + surname : ''}`;
+
+  // Add function to handle OSINT lookup
+  const handleOsintLookup = async () => {
+    if (!email || email === 'No email provided') {
+      alert('No email available for OSINT lookup');
+      return;
+    }
+
+    // Simply open the OsintPopup
+    setShowOsintDialog(true);
+  };
 
   return (
     <div className="bg-white dark:bg-slate-900/80 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-200 dark:border-slate-800">
@@ -113,18 +129,31 @@ export function StudentCard({
           {enrollmentNumber && (
             <p className="text-xs text-slate-500 mt-1">Enrollment: {enrollmentNumber}</p>
           )}
-          {admissionType && (
-            <Badge className="mt-2 bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
-              {admissionType}
-            </Badge>
-          )}
+          <div className="flex justify-between items-center mt-2">
+            {admissionType && (
+              <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
+                {admissionType}
+              </Badge>
+            )}
+            {email && email !== 'No email provided' && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 gap-1"
+                onClick={() => setShowOsintDialog(true)}
+              >
+                <Fingerprint className="h-4 w-4" />
+                OSINT
+              </Button>
+            )}
+          </div>
         </div>
         
         {/* Tab navigation */}
-        <div className="flex border-b border-slate-200 dark:border-slate-700 mb-4">
+        <div className="flex border-b border-slate-200 dark:border-slate-700 mb-4 overflow-x-auto scrollbar-hide">
           <button 
             onClick={() => setActiveTab('basic')}
-            className={`px-4 py-2 text-sm font-medium ${
+            className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${
               activeTab === 'basic' 
                 ? 'text-teal-600 border-b-2 border-teal-500' 
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -134,7 +163,7 @@ export function StudentCard({
           </button>
           <button 
             onClick={() => setActiveTab('academic')}
-            className={`px-4 py-2 text-sm font-medium ${
+            className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${
               activeTab === 'academic' 
                 ? 'text-teal-600 border-b-2 border-teal-500' 
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -144,7 +173,7 @@ export function StudentCard({
           </button>
           <button 
             onClick={() => setActiveTab('family')}
-            className={`px-4 py-2 text-sm font-medium ${
+            className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${
               activeTab === 'family' 
                 ? 'text-teal-600 border-b-2 border-teal-500' 
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -154,7 +183,7 @@ export function StudentCard({
           </button>
           <button 
             onClick={() => setActiveTab('other')}
-            className={`px-4 py-2 text-sm font-medium ${
+            className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${
               activeTab === 'other' 
                 ? 'text-teal-600 border-b-2 border-teal-500' 
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -371,125 +400,74 @@ export function StudentCard({
               >
                 View Full Profile
               </Button>
-          </div>
+            </div>
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="space-y-3">
-        <Dialog open={showOsintDialog} onOpenChange={setShowOsintDialog}>
-          <DialogTrigger asChild>
-              <Button className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-none text-white">
-              <Search className="h-4 w-4 mr-2" />
-                View Detailed Profile
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-                <DialogTitle className="text-center text-xl font-bold">Student Profile</DialogTitle>
-            </DialogHeader>
-            
-            {!agreedToTerms ? (
-              <div className="space-y-4">
-                <div className="flex items-start space-x-2 text-amber-600">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                    <p className="text-sm">Please read and agree to the terms before proceeding with student profile access</p>
-                </div>
-                
-                <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg text-sm space-y-2">
-                  <p>By proceeding, you agree to:</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>Use this information ethically and legally</li>
-                    <li>Respect privacy and data protection laws</li>
-                    <li>Not use the information for harassment or harmful purposes</li>
-                    <li>Report any suspicious or concerning findings</li>
-                  </ul>
-                </div>
+          <Button 
+            className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-none text-white"
+            onClick={() => setShowOsintDialog(true)}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            View Detailed Profile
+          </Button>
+          
+          {/* Social Media Links if available */}
+          {(social.github || social.linkedin || social.twitter || social.instagram) && (
+            <div className="grid grid-cols-4 gap-2 mt-3">
+              {social.github && (
+                <a
+                  href={social.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center p-2 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Github className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                </a>
+              )}
+              {social.linkedin && (
+                <a
+                  href={social.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center p-2 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Linkedin className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                </a>
+              )}
+              {social.twitter && (
+                <a
+                  href={social.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center p-2 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Twitter className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                </a>
+              )}
+              {social.instagram && (
+                <a
+                  href={social.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center p-2 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Instagram className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
-                <Button 
-                  className="w-full"
-                  onClick={() => setAgreedToTerms(true)}
-                >
-                  I Agree to the Terms
-                </Button>
-              </div>
-            ) : (
-                <div className="space-y-4">
-                  {/* Student Profile Details */}
-                  <div className="text-center p-6 border-b border-slate-200 dark:border-slate-800">
-                    <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-2xl font-bold mb-2">
-                      {name.charAt(0)}{surname ? surname.charAt(0) : ''}
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-2">{displayName}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{email}</p>
-                    
-                    <div className="flex justify-center gap-2 mt-4">
-                      <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                        {category}
-                      </Badge>
-                      <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                        {religion}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  {/* Social Media Links */}
-                  <div className="grid grid-cols-2 gap-3">
-                {social.github && (
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open(social.github, '_blank')}
-                    className="w-full"
-                  >
-                    <Github className="h-4 w-4 mr-2" />
-                    GitHub
-                  </Button>
-                )}
-                {social.linkedin && (
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open(social.linkedin, '_blank')}
-                    className="w-full"
-                  >
-                    <Linkedin className="h-4 w-4 mr-2" />
-                    LinkedIn
-                  </Button>
-                )}
-                {social.twitter && (
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open(social.twitter, '_blank')}
-                    className="w-full"
-                  >
-                    <Twitter className="h-4 w-4 mr-2" />
-                    Twitter
-                  </Button>
-                )}
-                {social.instagram && (
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open(social.instagram, '_blank')}
-                    className="w-full"
-                  >
-                    <Instagram className="h-4 w-4 mr-2" />
-                    Instagram
-                  </Button>
-                )}
-                <Button 
-                  variant="outline"
-                  onClick={() => window.open(`mailto:${email}`)}
-                  className="w-full col-span-2"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Email
-                </Button>
-                  </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
-      </div>
+      {/* OSINT Popup */}
+      <OsintPopup
+        isOpen={showOsintDialog}
+        onClose={() => setShowOsintDialog(false)}
+        email={email}
+      />
     </div>
   );
 }

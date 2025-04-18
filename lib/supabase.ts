@@ -26,6 +26,28 @@ export interface Student {
   motherName?: string;
   motherOccupation?: string;
   annualFamilyIncome?: string;
+  // Academic Records
+  tenth_marks_obtained?: string | number;
+  tenth_out_of_marks?: string | number;
+  twelfth_marks_obtained?: string | number;
+  twelfth_out_of_marks?: string | number;
+  diploma_marks_obtained?: string | number;
+  entrance_exam_percentage?: string | number;
+  // Contact Information
+  address_permanant?: string;
+  city_village_permanant?: string;
+  district_permanant?: string;
+  state_permanant?: string;
+  address_local?: string;
+  pin_local?: string;
+  // Other Details
+  physically_handicapped?: string | boolean;
+  height?: string | number;
+  weight?: string | number;
+  bank_name?: string;
+  ifsccode?: string;
+  sport_name?: string;
+  // URLs
   image_url: string;
   github_url?: string;
   twitter_url?: string;
