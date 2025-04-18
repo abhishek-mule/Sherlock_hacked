@@ -1,0 +1,21 @@
+{
+  "presets": ["babel-preset-expo"],
+  "plugins": [
+    "react-native-reanimated/plugin",
+    [
+      "module-resolver",
+      {
+        "root": ["./"],
+        "alias": {
+          "@mui/material": "@mui/material/esm",
+          "@mui/icons-material": "@mui/icons-material/esm"
+        }
+      }
+    ]
+  ],
+  "env": {
+    "production": {
+      "plugins": ["transform-remove-console"]
+    }
+  }
+} 

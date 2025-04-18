@@ -1,34 +1,32 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Container, 
-  TextField, 
-  Button, 
-  Typography, 
-  Paper,
-  Tabs,
-  Tab,
-  CircularProgress,
-  Grid,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Avatar,
-  IconButton,
-  useMediaQuery,
-  useTheme
-} from '@mui/material';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import CircularProgress from '@mui/material/CircularProgress';
+import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
+import Divider from '@mui/material/Divider';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Avatar from '@mui/material/Avatar';
+import IconButton from '@mui/material/IconButton';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import {
   Search as SearchIcon,
   LinkedIn as LinkedInIcon,

@@ -14,9 +14,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "eject": "expo eject",
-    "build:android": "eas build -p android",
-    "build:ios": "eas build -p ios",
-    "generate-splash": "node generate-splash.js"
+    "build:android": "eas build -p android --profile preview --non-interactive",
+    "build:ios": "eas build -p ios --profile preview --non-interactive",
+    "generate-splash": "node generate-splash.js",
+    "fix-conflicts": "react-native-fix-conflicts"
   },
   "dependencies": {
     "@emotion/react": "^11.11.0",
@@ -98,6 +99,8 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "babel-plugin-module-resolver": "^5.0.2",
+    "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-preset-expo": "^12.0.11",
     "eslint": "8.40.0",
     "eslint-config-next": "13.4.2",
