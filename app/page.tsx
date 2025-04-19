@@ -29,7 +29,7 @@ export const dynamic = 'force-dynamic';
 export default function Home() {
   const [searchResults, setSearchResults] = useState<Student[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showAllInfo, setShowAllInfo] = useState(true);
+  const [showAllInfo, setShowAllInfo] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showOsint, setShowOsint] = useState(false);
   const [osintStudent, setOsintStudent] = useState<Student | null>(null);
@@ -241,10 +241,6 @@ export default function Home() {
           description: "No students found matching your search criteria.",
           variant: "default",
         });
-      } else {
-        // Automatically set the selected student to the first result
-        setSelectedStudent(mappedResults[0]);
-        // Keep showAllInfo as true to show both card and detailed view
       }
       
       setSearchResults(mappedResults);
@@ -283,7 +279,7 @@ export default function Home() {
     }
   };
 
-  const handleShowAllInfo = (student: Student) => {
+  const handleShowDetails = (student: Student) => {
     setSelectedStudent(student);
     setShowAllInfo(true);
   };
@@ -795,6 +791,19 @@ export default function Home() {
               {searchResults.map((student, index) => (
                 <div key={index} className="animate-cardEntrance relative" style={{ animationDelay: `${index * 0.05}s` }}>
                   <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                    {/* More Details button at the top of card */}
+                    <div className="absolute top-3 right-3 z-10">
+                      <Button
+                        onClick={() => handleShowDetails(student)}
+                        size="sm"
+                        variant="secondary"
+                        className="text-xs bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-sm"
+                      >
+                        <List className="h-3 w-3 mr-1" />
+                        More Details
+                      </Button>
+                    </div>
+                    
                     <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-20 rounded-t-xl flex items-end">
                       <div className="mx-auto -mb-12">
                         <div className="h-24 w-24 rounded-full border-4 border-white dark:border-slate-900 overflow-hidden bg-white">
@@ -866,7 +875,17 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex justify-end">
+                    <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex justify-between">
+                      <Button
+                        onClick={() => handleShowDetails(student)}
+                        size="sm" 
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        <List className="h-3 w-3 mr-1" />
+                        More Details
+                      </Button>
+                      
                       <Button
                         onClick={() => showOsintModal(student)}
                         size="sm" 
@@ -881,19 +900,6 @@ export default function Home() {
                   </div>
                 </div>
               ))}
-            </div>
-            
-            {/* Full Student Information Section Title */}
-            <div className="mt-12 mb-4 border-t border-slate-200 dark:border-slate-700 pt-6">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center">
-                <span>Complete Student Information</span>
-                <Badge variant="secondary" className="ml-3 px-3 py-1 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
-                  Full Details
-                </Badge>
-              </h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-2">
-                Below you&apos;ll find all available information for the selected student.
-              </p>
             </div>
           </div>
         )}
@@ -929,7 +935,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* All Student Information Modal - Keep this for the detailed view */}
+      {/* All Student Information Modal - Only show when showAllInfo is true */}
       {showAllInfo && selectedStudent && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 animate-popIn">
