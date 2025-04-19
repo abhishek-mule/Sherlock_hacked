@@ -7,8 +7,7 @@
       {
         "root": ["./"],
         "alias": {
-          "@mui/material": "@mui/material/esm",
-          "@mui/icons-material": "@mui/icons-material/esm"
+          "@": "./"
         }
       }
     ]

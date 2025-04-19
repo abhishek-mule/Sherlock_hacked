@@ -9,9 +9,7 @@ module.exports = function(api) {
         {
           root: ['.'],
           alias: {
-            // Use specific file imports for Material-UI to avoid barrel imports
-            '@mui/material': '@mui/material/esm',
-            '@mui/icons-material': '@mui/icons-material/esm'
+            '@': './'
           },
         },
       ],

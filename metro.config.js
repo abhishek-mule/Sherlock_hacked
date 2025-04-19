@@ -17,6 +17,5 @@ module.exports = {
         inlineRequires: true,
       },
     }),
-    babelTransformerPath: require.resolve('react-native-css-transformer'),
   },
 }; 

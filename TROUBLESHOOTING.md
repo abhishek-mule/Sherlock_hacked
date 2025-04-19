@@ -8,7 +8,13 @@ This document provides solutions to common issues that may arise when building o
 
 If you encounter error messages about conflicting star exports in `@mui/material` or related packages, follow these steps:
 
-1. Make sure you're using the direct import style for Material UI components:
+1. Run our specialized Material UI fix script:
+   ```bash
+   npm run fix-mui
+   ```
+   This script creates a helper file that properly handles Material UI component imports to avoid conflicts with React Native.
+
+2. Make sure you're using the direct import style for Material UI components:
    ```jsx
    // AVOID this barrel import style:
    import { Button, TextField } from '@mui/material';
@@ -16,14 +22,17 @@ If you encounter error messages about conflicting star exports in `@mui/material
    // USE this direct import style instead:
    import Button from '@mui/material/Button';
    import TextField from '@mui/material/TextField';
+   
+   // OR use our helper (recommended for OSINTDashboard):
+   import { Button, TextField } from './mui-components';
    ```
 
-2. Run the following command to fix conflicts:
+3. If problems persist, run the setup script which includes the MUI fix:
    ```bash
-   npm run fix-conflicts
+   npm run setup
    ```
 
-3. If problems persist, clean your build cache:
+4. If you still see errors, try cleaning your build cache:
    ```bash
    npx expo start --clear
    ```
@@ -32,12 +41,19 @@ If you encounter error messages about conflicting star exports in `@mui/material
 
 If you encounter React version conflicts between React 18 and React 19:
 
-1. Install dependencies with the legacy peer deps flag:
+1. Use our automated setup script to reinstall dependencies with the correct flags:
    ```bash
+   npm run setup
+   ```
+
+2. If you prefer to do it manually, install dependencies with the legacy peer deps flag:
+   ```bash
+   npm cache clean --force
+   rm -rf node_modules package-lock.json
    npm install --legacy-peer-deps
    ```
 
-2. Make sure your .babelrc and babel.config.js files are correctly set up as shown in the repository.
+3. Make sure your .babelrc and babel.config.js files are correctly set up as shown in the repository.
 
 ## Build Issues
 

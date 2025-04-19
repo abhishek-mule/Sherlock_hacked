@@ -1,148 +1,83 @@
-# Student PDF Data Extractor
+# Sherlock Student Database Mobile App
 
-A simplified tool to extract student data from PDF files and display it on a website.
+A powerful student database application built with Next.js and React Native + Expo. This app allows you to search, view, and manage student records, with additional features like email lookups and OSINT enrichment.
 
-## Overview
+## Features
 
-This project includes:
-1. A FastAPI backend to extract student data from PDF files using OCR
-2. A simple HTML frontend to display the extracted student data
-3. Integration between the two via a REST API
-4. **Search feature to find student details by name**
+- Student search and detailed profiles
+- Admission data search
+- Email intelligence lookup
+- Mobile app support through React Native
+- Beautiful UI with dark mode support
 
-## Requirements
+## Getting Started
 
-1. Python 3.8 or higher
-2. Tesseract OCR (for text recognition)
-3. Poppler (for PDF to image conversion)
+### Prerequisites
 
-## Installation
+- Node.js 14.x or higher
+- npm 7.x or higher
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- [EAS CLI](https://docs.expo.dev/build/setup/) for building APKs
 
-### 1. Install Tesseract OCR
+### Installation
 
-For Windows:
-1. Download and install Tesseract OCR from [Tesseract GitHub](https://github.com/UB-Mannheim/tesseract/wiki)
-2. Install to the default location: `C:\Program Files\Tesseract-OCR`
-3. Add the installation directory to your PATH environment variable
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/abhishek-mule/Sherlock_hacked.git
+   cd Sherlock_hacked
+   ```
 
-### 2. Install Poppler
+2. Install dependencies:
+   ```bash
+   npm run setup
+   ```
+   This script:
+   - Cleans npm cache
+   - Removes node_modules and package-lock.json
+   - Installs dependencies with the legacy-peer-deps flag
+   - Fixes Material UI import issues
 
-For Windows:
-1. Download Poppler from [Poppler Releases](http://blog.alivate.com.au/poppler-windows/)
-2. Extract to `C:\poppler`
-3. Add `C:\poppler\bin` to your PATH environment variable
+3. Check your environment:
+   ```bash
+   npm run check-env
+   ```
 
-### 3. Install Python Dependencies
+### Development
 
-Run:
+1. Start the Next.js development server:
+   ```bash
+   npm run dev
+   ```
+
+2. In a separate terminal, start the Expo app:
+   ```bash
+   npm run android
+   ```
+
+### Building the APK
+
+To build an Android APK:
+
 ```bash
-pip install -r requirements.txt
+npm run build:android
 ```
 
-## Usage
-
-### 1. Start the Backend Server
-
-Run:
-```bash
-python pdf_extractor.py
-```
-
-This will start the API server at `http://localhost:8000`.
-
-### 2. Open the Website
-
-Open `website_example.html` in your web browser.
-
-### 3. Extract Student Data from PDF
-
-1. Click on the "Upload PDF" tab
-2. Click "Choose PDF File" and select a PDF containing student information
-3. The system will extract the student data and display it on the page
-4. The extracted data is also automatically saved to a database for future searches
-
-### 4. Search for Student Data
-
-1. Click on the "Search Students" tab
-2. Enter a student name (or part of a name) in the search box
-3. Click "Search" to find matching student records
-4. Click on a search result to view detailed student information
-5. All data from the PDF will be displayed in the detailed view
+This will create an APK using EAS Build that can be installed on Android devices.
 
 ## Troubleshooting
 
-### Connection Issues
+If you encounter any issues, please check the [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) file for solutions to common problems.
 
-If you see "Failed to fetch" or connection errors:
+### Quick Fixes
 
-1. **Check if the API server is running**
-   - Make sure you've started the server with `python pdf_extractor.py`
-   - The terminal should show "Starting API server at http://localhost:8000"
+- **Dependency conflicts**: Run `npm run setup` to reinstall dependencies with correct flags
+- **Material UI import errors**: Run `npm run fix-mui` to create a helper file for MUI components
+- **Metro bundler issues**: Run `npx react-native start --reset-cache` to clear the cache
 
-2. **Check server status in the web interface**
-   - The website now has a status indicator showing if the API is reachable
-   - If it shows "Offline", check that the server is running
+## Contributing
 
-3. **CORS Issues**
-   - If opening the HTML file directly from your file system, some browsers block API calls
-   - Solution 1: Use a local web server to serve the HTML file:
-     ```bash
-     python -m http.server 8080
-     ```
-     Then access the website at http://localhost:8080/website_example.html
-     
-   - Solution 2: Use a browser with less strict CORS when developing locally (like Firefox)
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-4. **Change API URL**
-   - If your server is running on a different port or host, use the API settings section
-   - Enter the correct URL and click "Save Settings"
+## License
 
-### PDF Processing Issues
-
-1. **No data extracted**
-   - Make sure the PDF contains text (not just images)
-   - Check that the PDF format matches the expected patterns in the code
-   - You may need to customize the regex patterns for your specific documents
-
-2. **Tesseract OCR issues**
-   - Verify Tesseract is correctly installed and in your PATH
-   - Try running Tesseract manually on an image to check if it works
-
-### Search Issues
-
-1. **No search results**
-   - Verify that you've previously uploaded PDFs with student data
-   - The search is case-insensitive and supports partial matches
-   - Check the student_database.json file to see if it contains any records
-
-2. **Database not updating**
-   - Make sure the application has write permissions in the directory
-   - Check for errors in the server logs
-
-## Customizing Student Data Extraction
-
-You can customize which fields are extracted by modifying the regex patterns in `pdf_extractor.py`. The current patterns look for:
-
-- Student ID
-- Name
-- Date of Birth
-- Course/Program
-- Grade/GPA
-- Email
-
-If your PDF documents have a different format, update the `STUDENT_PATTERNS` dictionary with patterns that match your documents.
-
-## Integration with Your Existing Website
-
-To integrate this functionality with your existing website:
-
-1. Add the HTML and JavaScript from `website_example.html` to your website
-2. Ensure your website can make API calls to the backend server
-3. Update the fetch URL in the JavaScript to point to your API server
-
-## Notes
-
-- This is a simplified version that uses Tesseract OCR for text extraction
-- For better accuracy with complex documents, consider fine-tuning the extraction patterns
-- The temporary files are automatically cleaned up after processing
-- Student data is stored in student_database.json for persistent storage and searching
+This project is licensed under the MIT License - see the LICENSE file for details.
