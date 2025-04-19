@@ -7,7 +7,7 @@ import { StudentCard } from '@/components/student-card';
 import { EnhancedStudentCard } from '@/components/enhanced-student-card';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Button } from '@/components/ui/button';
-import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail, FileText, AlertCircle, CheckCircle2, Database, User } from 'lucide-react';
+import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail, FileText, AlertCircle, CheckCircle2, Database, User, Phone, Award } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { supabase, Student } from '@/lib/supabase';
 import { CSVImport } from '@/components/csv-import';
@@ -43,6 +43,22 @@ export default function Home() {
   const [lookupError, setLookupError] = useState<string | null>(null);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+
+  // Helper function to generate random funny avatar URL
+  const generateRandomAvatar = (studentId: string) => {
+    // Use different funny avatar styles: avataaars, bottts, jdenticon, etc.
+    const styles = ['avataaars', 'bottts', 'gridy', 'micah', 'pixel-art', 'identicon'];
+    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+    
+    // Generate a consistent hash from the student ID
+    const hash = Array.from(studentId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    
+    // Create different backgrounds and features based on the hash
+    const bg = ['b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf'][hash % 5];
+    
+    // Ensure each student gets a consistent but random avatar
+    return `https://avatars.dicebear.com/api/${randomStyle}/${hash}.svg?background=%23${bg}`;
+  };
 
   // Add useEffect to check authentication when the page loads
   useEffect(() => {
@@ -152,6 +168,8 @@ export default function Home() {
         
         console.log(`Mapping record with fullName: "${fullName}", firstName: "${firstName}", lastName: "${lastName}"`);
         
+        const studentId = student.SRNO || student.ROLLNO || '';
+        
         return {
           id: student.SRNO || '',
           name: firstName || fullName.split(' ')[0] || '',
@@ -178,7 +196,8 @@ export default function Home() {
           motherName: student.MOTHERNAME || '',
           motherOccupation: student["MOTHER'S OCCUPATION"] || '',
           annualFamilyIncome: student["ANNUAL FAMILY INCOME"] || '',
-          image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(student.SRNO) || 1),
+          // Generate a random avatar for each student
+          image_url: generateRandomAvatar(studentId || student.EMAILID || fullName),
           github_url: '',
           twitter_url: '',
           linkedin_url: '',
@@ -208,6 +227,12 @@ export default function Home() {
         return hasData && detailsScore > 0;
       });
 
+      // Add an extra step to assign random funny avatars to each student
+      mappedResults = mappedResults.map(student => ({
+        ...student,
+        image_url: generateRandomAvatar(student.id || student.rollno || student.email)
+      }));
+
       console.log('Final filtered results:', mappedResults);
       
       if (mappedResults.length === 0) {
@@ -219,7 +244,7 @@ export default function Home() {
       } else {
         // Automatically set the selected student to the first result
         setSelectedStudent(mappedResults[0]);
-        // Keep showAllInfo as true
+        // Keep showAllInfo as true to show both card and detailed view
       }
       
       setSearchResults(mappedResults);
@@ -674,7 +699,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-200 mobile-scrollview">
+    <div className="bg-slate-50 dark:bg-slate-900 min-h-screen pb-16">
       {/* Navigation Bar */}
       <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 transition-all duration-200 safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -733,7 +758,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 pb-28">
+      <main className="container mx-auto px-4 py-6 mb-20">
         {/* Search Section */}
         <div className="text-center mb-10 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 tracking-tight animate-fadeIn">
@@ -753,277 +778,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Feature Cards */}
-        <Tabs defaultValue="dashboard" className="w-full mb-8">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="search">Search</TabsTrigger>
-            <TabsTrigger value="osint">OSINT</TabsTrigger>
-            <TabsTrigger value="tools">Tools</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="dashboard" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold flex items-center">
-                    <Search className="h-5 w-5 mr-2 text-teal-500" />
-                    Quick Search
-                  </CardTitle>
-                  <CardDescription>Find students by name or ID</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SearchBar onSearch={handleSearch} isSearching={isSearching} />
-                </CardContent>
-                <CardFooter className="pt-2 text-xs text-slate-500">
-                  <p className="flex items-center">
-                    <Search className="h-3 w-3 mr-1" />
-                    Try searching by name, ID, or roll number
-                  </p>
-                </CardFooter>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold flex items-center">
-                    <Database className="h-5 w-5 mr-2 text-indigo-500" />
-                    Advanced Search
-                  </CardTitle>
-                  <CardDescription>Search admission database</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm">Find detailed student admission records</p>
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    onClick={() => router.push('/admission-search')}
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    Admission Data
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold flex items-center">
-                    <Mail className="h-5 w-5 mr-2 text-blue-500" />
-                    Email Intelligence
-                  </CardTitle>
-                  <CardDescription>OSINT tools for email discovery</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm">Find social profiles and verify student information</p>
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    onClick={() => router.push('/reversecontact-demo')}
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email Lookup
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold flex items-center">
-                    <FileText className="h-5 w-5 mr-2 text-amber-500" />
-                    PDF Extract
-                  </CardTitle>
-                  <CardDescription>Extract student data from documents</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => router.push('/pdf-upload')}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    PDF Extraction
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="search" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Search Options</CardTitle>
-                <CardDescription>Find students across multiple data sources</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <SearchBar onSearch={handleSearch} isSearching={isSearching} />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto py-3"
-                    onClick={() => {}}
-                  >
-                    <Search className="h-5 w-5 mr-2 text-teal-500" />
-                    <div className="text-left">
-                      <div className="font-medium">Quick Search</div>
-                      <div className="text-xs text-muted-foreground">Find students by name or ID</div>
-                    </div>
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto py-3"
-                    onClick={() => router.push('/admission-search')}
-                  >
-                    <Database className="h-5 w-5 mr-2 text-indigo-500" />
-                    <div className="text-left">
-                      <div className="font-medium">Advanced Search (admission data)</div>
-                      <div className="text-xs text-muted-foreground">Search detailed admission records</div>
-                    </div>
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto py-3"
-                    onClick={() => router.push('/reversecontact-demo')}
-                  >
-                    <Mail className="h-5 w-5 mr-2 text-blue-500" />
-                    <div className="text-left">
-                      <div className="font-medium">OSINT (email intelligence)</div>
-                      <div className="text-xs text-muted-foreground">Find social profiles and verify information</div>
-                    </div>
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto py-3"
-                    onClick={() => router.push('/pdf-upload')}
-                  >
-                    <FileText className="h-5 w-5 mr-2 text-amber-500" />
-                    <div className="text-left">
-                      <div className="font-medium">PDF Extract</div>
-                      <div className="text-xs text-muted-foreground">Extract student data from documents</div>
-                    </div>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="osint" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Email Intelligence Tools</CardTitle>
-                <CardDescription>Find social profiles and verify student information</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {renderEmailLookup()}
-                
-                <div className="mt-6 border rounded-lg p-6 bg-gradient-to-r from-teal-50 to-cyan-50">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-bold text-lg text-teal-700 flex items-center">
-                        <Mail className="h-5 w-5 mr-2" />
-                        Reverse Contact API Integration
-                      </h3>
-                      <p className="text-sm text-slate-600 mt-1">
-                        Use the Reverse Contact API for advanced email lookups and identity verification.
-                      </p>
-                    </div>
-                    <Badge className="bg-teal-500">Featured</Badge>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <Button
-                      className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-                      onClick={() => router.push('/reversecontact-demo')}
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Try Email Intelligence
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="tools" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Utility Tools</CardTitle>
-                <CardDescription>Import and extract student data</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border rounded-lg p-4">
-                    <h3 className="font-medium mb-2 flex items-center">
-                      <FileText className="h-4 w-4 mr-2 text-amber-600" />
-                      PDF Document Processing
-                    </h3>
-                    <p className="text-sm text-slate-500 mb-4">Extract student data from PDF documents</p>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => router.push('/pdf-upload')}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      PDF Upload & Extract
-                    </Button>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <h3 className="font-medium mb-2 flex items-center">
-                      <Database className="h-4 w-4 mr-2 text-blue-600" />
-                      CSV Import
-                    </h3>
-                    <p className="text-sm text-slate-500 mb-4">Import student records from CSV files</p>
-                    <ClientOnly>
-                      <CSVImport />
-                    </ClientOnly>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Add a Quick Action row right after the tabs */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center"
-            onClick={() => router.push('/admission-search')}
-          >
-            <Database className="h-3.5 w-3.5 mr-1.5" />
-            Admission Data
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center"
-            onClick={() => router.push('/pdf-upload')}
-          >
-            <FileText className="h-3.5 w-3.5 mr-1.5" />
-            PDF Extract
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center bg-teal-50"
-            onClick={() => router.push('/reversecontact-demo')}
-          >
-            <Mail className="h-3.5 w-3.5 mr-1.5 text-teal-600" />
-            Email Intelligence
-          </Button>
-        </div>
-
         {/* Search Results */}
-        {searchResults.length > 0 && !showAllInfo && (
-          <div className="space-y-6 animate-swipeUp">
+        {searchResults.length > 0 && (
+          <div className="space-y-8 animate-swipeUp">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
               <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 flex items-center">
                 <span>Search Results</span> 
@@ -1031,18 +788,112 @@ export default function Home() {
                   {searchResults.length} student{searchResults.length !== 1 ? 's' : ''}
                 </Badge>
               </h3>
-              <div className="flex gap-2">
-                <Badge variant="secondary" className="px-3 py-1.5 text-xs bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
-                  <Search className="h-3 w-3 mr-1" />
-                  Showing Full Information
-                </Badge>
-              </div>
             </div>
             
-            <div className="bg-white dark:bg-slate-900/60 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md">
-              <div className="text-center p-4">
-                <p className="text-slate-700 dark:text-slate-300">Displaying complete student information below.</p>
-              </div>
+            {/* Student Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {searchResults.map((student, index) => (
+                <div key={index} className="animate-cardEntrance relative" style={{ animationDelay: `${index * 0.05}s` }}>
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                    <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-20 rounded-t-xl flex items-end">
+                      <div className="mx-auto -mb-12">
+                        <div className="h-24 w-24 rounded-full border-4 border-white dark:border-slate-900 overflow-hidden bg-white">
+                          <img 
+                            src={student.image_url} 
+                            alt={`${student.name} ${student.surname}`} 
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-14 pb-4 px-5 text-center">
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+                        {student.name} {student.surname}
+                      </h3>
+                      
+                      <div className="flex flex-wrap gap-2 justify-center my-2">
+                        {student.rollno && (
+                          <Badge variant="outline" className="px-2 py-0.5">
+                            ID: {student.rollno}
+                          </Badge>
+                        )}
+                        {student.admissionType && (
+                          <Badge variant="outline" className="px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
+                            {student.admissionType}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3">
+                      <div className="grid grid-cols-1 gap-2">
+                        {student.email && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+                            <span className="text-slate-700 dark:text-slate-300 truncate">{student.email}</span>
+                          </div>
+                        )}
+                        {student.mobileNo && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+                            <span className="text-slate-700 dark:text-slate-300">{student.mobileNo}</span>
+                          </div>
+                        )}
+                        {student.category && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Award className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+                            <span className="text-slate-700 dark:text-slate-300">Category: {student.category}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3">
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                        {student.religion && (
+                          <div className="text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">Religion:</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 ml-1">{student.religion}</span>
+                          </div>
+                        )}
+                        {student.subcast && (
+                          <div className="text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">Sub-caste:</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 ml-1">{student.subcast}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex justify-end">
+                      <Button
+                        onClick={() => showOsintModal(student)}
+                        size="sm" 
+                        variant="outline"
+                        className="text-xs"
+                        disabled={!student.email}
+                      >
+                        <Fingerprint className="h-3 w-3 mr-1" />
+                        OSINT Lookup
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Full Student Information Section Title */}
+            <div className="mt-12 mb-4 border-t border-slate-200 dark:border-slate-700 pt-6">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center">
+                <span>Complete Student Information</span>
+                <Badge variant="secondary" className="ml-3 px-3 py-1 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+                  Full Details
+                </Badge>
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-2">
+                Below you&apos;ll find all available information for the selected student.
+              </p>
             </div>
           </div>
         )}
@@ -1078,7 +929,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* All Student Information Modal */}
+      {/* All Student Information Modal - Keep this for the detailed view */}
       {showAllInfo && selectedStudent && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 animate-popIn">
