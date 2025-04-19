@@ -1,4 +1,5 @@
 {
+  /* This config is for React Native only. Next.js uses SWC. */
   "presets": ["babel-preset-expo"],
   "plugins": [
     "react-native-reanimated/plugin",
@@ -17,4 +18,4 @@
       "plugins": ["transform-remove-console"]
     }
   }
-} 
+}

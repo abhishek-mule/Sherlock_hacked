@@ -29,7 +29,7 @@ export const dynamic = 'force-dynamic';
 export default function Home() {
   const [searchResults, setSearchResults] = useState<Student[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showAllInfo, setShowAllInfo] = useState(false);
+  const [showAllInfo, setShowAllInfo] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showOsint, setShowOsint] = useState(false);
   const [osintStudent, setOsintStudent] = useState<Student | null>(null);
@@ -216,14 +216,18 @@ export default function Home() {
           description: "No students found matching your search criteria.",
           variant: "default",
         });
+      } else {
+        // Automatically set the selected student to the first result
+        setSelectedStudent(mappedResults[0]);
+        // Keep showAllInfo as true
       }
-
+      
       setSearchResults(mappedResults);
     } catch (error) {
-      console.error('Error searching students:', error);
+      console.error('Search error:', error);
       toast({
         title: "Search Error",
-        description: "An unexpected error occurred while searching. Please try again.",
+        description: "Failed to search for students. Please try again.",
         variant: "destructive",
       });
       setSearchResults([]);
@@ -1030,104 +1034,16 @@ export default function Home() {
               <div className="flex gap-2">
                 <Badge variant="secondary" className="px-3 py-1.5 text-xs bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
                   <Search className="h-3 w-3 mr-1" />
-                  Exact Matches
+                  Showing Full Information
                 </Badge>
               </div>
             </div>
             
-            {searchResults.length > 1 ? (
-              <div className="bg-white dark:bg-slate-900/60 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md">                
-                <div className="space-y-4">
-                  {searchResults.map((student, index) => (
-                    <div 
-                      key={student.id}
-                      className="flex flex-col sm:flex-row items-start sm:items-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors animate-swipeRight"
-                      style={{animationDelay: `${index * 0.05}s`}}
-                    >
-                      <div className="flex-shrink-0 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full h-14 w-14 flex items-center justify-center text-white font-bold mb-3 sm:mb-0">
-                        {student.name.charAt(0)}{student.surname ? student.surname.charAt(0) : ''}
-                      </div>
-                      
-                      <div className="sm:ml-4 flex-1 w-full">
-                        <p className="text-lg font-medium text-slate-900 dark:text-white">
-                          {student.name} {student.surname}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-400 mt-2">
-                          <div className="flex items-center">
-                            <Mail className="h-3.5 w-3.5 mr-1.5 text-teal-500 dark:text-teal-400" /> 
-                            <span className="truncate">{student.email || 'No email'}</span>
-                          </div>
-                          {student.rollno && (
-                            <div className="flex items-center">
-                              <Badge variant="outline" className="mr-1.5 h-3.5 w-3.5 p-0 flex items-center justify-center text-xs text-teal-600">ID</Badge>
-                              {student.rollno}
-                            </div>
-                          )}
-                          {student.registrationNo && (
-                            <div className="flex items-center">
-                              <Badge variant="outline" className="mr-1.5 h-3.5 w-3.5 p-0 flex items-center justify-center text-xs text-cyan-600">R</Badge>
-                              {student.registrationNo}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex-shrink-0 flex flex-wrap sm:flex-nowrap gap-2 mt-3 sm:mt-0 w-full sm:w-auto justify-start sm:justify-end">
-                        <Button 
-                          onClick={() => setSearchResults([student])}
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1 sm:flex-auto mobile-ripple"
-                        >
-                          <Eye className="h-3.5 w-3.5 mr-1.5" />
-                          Details
-                        </Button>
-                        <Button 
-                          onClick={() => handleShowAllInfo(student)}
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1 sm:flex-auto flex items-center space-x-1 mobile-ripple"
-                        >
-                          <List className="h-3.5 w-3.5 mr-1.5" />
-                          <span>All Info</span>
-                        </Button>
-                        <Button 
-                          onClick={() => showOsintModal(student)}
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1 sm:flex-auto flex items-center space-x-1 mobile-ripple"
-                        >
-                          <Fingerprint className="h-3.5 w-3.5 mr-1.5" />
-                          <span>OSINT</span>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>                
+            <div className="bg-white dark:bg-slate-900/60 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md">
+              <div className="text-center p-4">
+                <p className="text-slate-700 dark:text-slate-300">Displaying complete student information below.</p>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {searchResults.map((student, index) => (
-                  <div key={index} className="animate-cardEntrance relative" style={{ animationDelay: `${index * 0.05}s` }}>
-                    <div className="absolute top-4 right-4 z-10 flex gap-2">
-                      <Button
-                        onClick={() => handleShowAllInfo(student)}
-                        variant="outline"
-                        size="sm"
-                        className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"
-                      >
-                        <List className="h-3.5 w-3.5 mr-1.5" />
-                        All Info
-                      </Button>
-                    </div>
-                    <EnhancedStudentCard 
-                      student={student} 
-                      onOsintLookup={showOsintModal}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            </div>
           </div>
         )}
 
