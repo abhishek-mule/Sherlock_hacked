@@ -36,8 +36,19 @@ export async function GET() {
         });
       }
       
+      // Check for "No more credits" error - this means the API key is valid but out of credits
       const errorText = await response.text();
-      console.log(`X-API-KEY auth failed with status ${response.status}: ${errorText}`);
+      console.log(`X-API-KEY auth response: ${response.status}: ${errorText}`);
+      
+      // Check if the error is about credits
+      if (response.status === 402 && errorText.includes("No more credits")) {
+        return NextResponse.json({
+          success: true, // Still return success as the API is configured correctly
+          message: 'API key is valid but your account has no more credits. Please purchase more credits or use mock data.',
+          needsCredits: true,
+          headerType: 'X-API-KEY'
+        });
+      }
       
       // Try with Authorization header
       const authResponse = await fetch(`${apiUrl}?${requestParams.toString()}`, {
@@ -57,6 +68,17 @@ export async function GET() {
         });
       }
       
+      // Check for "No more credits" error with Authorization header
+      const authErrorText = await authResponse.text();
+      if (authResponse.status === 402 && authErrorText.includes("No more credits")) {
+        return NextResponse.json({
+          success: true, // Still return success as the API is configured correctly
+          message: 'API key is valid but your account has no more credits. Please purchase more credits or use mock data.',
+          needsCredits: true,
+          headerType: 'Authorization'
+        });
+      }
+      
       // Try with Bearer token
       const bearerResponse = await fetch(`${apiUrl}?${requestParams.toString()}`, {
         method: 'GET',
@@ -71,6 +93,17 @@ export async function GET() {
         return NextResponse.json({
           success: true,
           message: 'API is configured correctly with Bearer token.',
+          headerType: 'Bearer'
+        });
+      }
+      
+      // Check for "No more credits" error with Bearer token
+      const bearerErrorText = await bearerResponse.text();
+      if (bearerResponse.status === 402 && bearerErrorText.includes("No more credits")) {
+        return NextResponse.json({
+          success: true, // Still return success as the API is configured correctly
+          message: 'API key is valid but your account has no more credits. Please purchase more credits or use mock data.',
+          needsCredits: true,
           headerType: 'Bearer'
         });
       }

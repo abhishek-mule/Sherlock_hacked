@@ -22,11 +22,15 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { performOSINTLookup } from './OSINTDashboard';
 import OsintPopup from './OsintPopup';
+import { RandomProfilePicture } from './RandomProfilePicture';
 
 interface StudentInfo {
   name: string;
   surname: string;
-  image: string;
+  image: {
+    seed: string;
+    gender: string;
+  } | string;
   email: string;
   fatherName: string;
   occupation: string;
@@ -108,6 +112,25 @@ export function StudentCard({
   return (
     <div className="bg-white dark:bg-slate-900/80 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-200 dark:border-slate-800">
       <div className="p-6">
+        {/* Add profile picture at the top */}
+        <div className="flex justify-center mb-4">
+          {typeof image === 'object' && image.seed ? (
+            <RandomProfilePicture 
+              seed={image.seed}
+              gender={image.gender as 'Male' | 'Female'}
+              size={80}
+              className="mb-3"
+              alt={displayName}
+            />
+          ) : (
+            <img 
+              src={typeof image === 'string' ? image : 'https://i.pravatar.cc/150?img=1'} 
+              alt={displayName} 
+              className="w-20 h-20 rounded-full object-cover border-2 border-teal-500"
+            />
+          )}
+        </div>
+        
         {/* Student Name Header with ID info */}
         <div className="border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
           <div className="flex items-center justify-between mb-1">

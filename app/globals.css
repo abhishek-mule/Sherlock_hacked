@@ -13,7 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
  
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 173 80% 40%;
     --primary-foreground: 210 40% 98%;
  
     --secondary: 210 40% 96.1%;
@@ -22,15 +22,15 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
  
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 173 80% 96%;
+    --accent-foreground: 173 80% 25%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 173 80% 40%;
  
     --radius: 0.5rem;
     --app-height: 100%;
@@ -46,8 +46,8 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
  
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 173 70% 45%;
+    --primary-foreground: 210 40% 98%;
  
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -55,15 +55,15 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
  
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 173 80% 20%;
+    --accent-foreground: 173 80% 90%;
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
  
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 173 70% 45%;
   }
 
   html, body {
@@ -73,6 +73,15 @@
     height: var(--app-height);
     width: 100%;
     overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  html {
+    font-family: var(--font-inter), system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-poppins), var(--font-inter), system-ui, sans-serif;
   }
 
   body {
@@ -81,6 +90,8 @@
     overflow-y: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.011em; /* Slightly tighter letter spacing for better readability */
+    text-rendering: optimizeLegibility;
   }
 
   /* Better scrollbar styles */
@@ -96,10 +107,19 @@
   ::-webkit-scrollbar-thumb {
     background: rgba(156, 163, 175, 0.5);
     border-radius: 4px;
+    transition: background 0.3s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(107, 114, 128, 0.7);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(75, 85, 99, 0.7);
   }
 
   /* Hide scrollbar for mobile */
@@ -118,6 +138,35 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Enhanced card styles */
+@layer components {
+  .glass-card {
+    @apply bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+  
+  .glass-card-hover {
+    @apply hover:border-teal-300/50 dark:hover:border-teal-700/50 hover:bg-gradient-to-br hover:from-white hover:to-teal-50/30 dark:hover:from-slate-900 dark:hover:to-teal-900/10;
+  }
+
+  .frosted-glass {
+    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-700/20 shadow-lg;
+  }
+
+  /* Modern badge styles */
+  .badge-primary {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300;
+  }
+
+  .badge-secondary {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent;
   }
 }
 
@@ -215,8 +264,22 @@
   }
 }
 
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
 .animate-popIn {
-  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: popIn 0.3s cubic-bezier(0.2, 0.85, 0.4, 1.275) forwards;
+  will-change: transform, opacity;
 }
 
 .animate-swipeUp {
@@ -225,6 +288,11 @@
 
 .animate-swipeRight {
   animation: swipeRight 0.25s ease-out forwards;
+}
+
+.animate-cardEntrance {
+  animation: cardEntrance 0.4s ease-out forwards;
+  will-change: transform, opacity;
 }
 
 /* Mobile ripple effect for buttons */
@@ -256,29 +324,86 @@
   transition: 0s;
 }
 
-/* Safe area insets for notched devices */
+/* Safari inset values */
 .safe-area-inset-top {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: env(safe-area-inset-top, 0);
+  padding-top: constant(safe-area-inset-top, 0);
 }
 
 .safe-area-inset-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: constant(safe-area-inset-bottom, 0);
 }
 
-/* Mobile style scrollable container */
+/* Mobile scroll fixes */
 .mobile-scrollview {
   -webkit-overflow-scrolling: touch;
-  scroll-snap-type: y proximity;
-  scrollbar-width: none;
   overscroll-behavior-y: contain;
+  overflow-y: auto;
+  height: 100%;
+  width: 100%;
 }
 
 .mobile-scrollview > * {
-  scroll-snap-align: start;
+  -webkit-transform: translateZ(0px);
+  transform: translateZ(0px);
 }
 
-/* Run app height adjustment script */
-@keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+/* Focus states */
+*:focus-visible {
+  @apply outline-none ring-2 ring-offset-1 ring-teal-500 dark:ring-teal-400;
+}
+
+/* Button hover and focus states */
+button:not([disabled]):hover, 
+a:not([disabled]):hover {
+  @apply transition-colors duration-200;
+}
+
+/* Modern button style */
+.btn-primary {
+  @apply inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all duration-200;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all duration-200;
+}
+
+/* Optimize existing animations */
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Enhanced button transitions */
+button, 
+.btn,
+.mobile-ripple {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active,
+.btn:active,
+.mobile-ripple:active {
+  transform: scale(0.96);
+}
+
+/* Glass Card Hover Effects */
+.glass-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }

@@ -7,7 +7,7 @@ import { StudentCard } from '@/components/student-card';
 import { EnhancedStudentCard } from '@/components/enhanced-student-card';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Button } from '@/components/ui/button';
-import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail, FileText, AlertCircle, CheckCircle2, Database, User, Phone, Award } from 'lucide-react';
+import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail, FileText, AlertCircle, CheckCircle2, Database, User, Phone, Award, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { supabase, Student } from '@/lib/supabase';
 import { CSVImport } from '@/components/csv-import';
@@ -22,6 +22,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { performOSINTLookup, generateMockOSINTData, OSINTResult } from '@/components/OSINTDashboard';
 import { Input } from '@/components/ui/input';
 import React from 'react';
+import { generatePeoplifyAvatarParams, getStudentImageUrl, convertDbColumnToCamelCase } from '@/lib/utils';
+import { RandomProfilePicture } from '@/components/RandomProfilePicture';
+import { QuickSearchCard } from '@/components/quick-search-card';
 
 // Add dynamic rendering config
 export const dynamic = 'force-dynamic';
@@ -41,24 +44,9 @@ export default function Home() {
   const [lookupResults, setLookupResults] = useState<any>(null);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-
-  // Helper function to generate random funny avatar URL
-  const generateRandomAvatar = (studentId: string) => {
-    // Use different funny avatar styles: avataaars, bottts, jdenticon, etc.
-    const styles = ['avataaars', 'bottts', 'gridy', 'micah', 'pixel-art', 'identicon'];
-    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-    
-    // Generate a consistent hash from the student ID
-    const hash = Array.from(studentId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    
-    // Create different backgrounds and features based on the hash
-    const bg = ['b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf'][hash % 5];
-    
-    // Ensure each student gets a consistent but random avatar
-    return `https://avatars.dicebear.com/api/${randomStyle}/${hash}.svg?background=%23${bg}`;
-  };
 
   // Add useEffect to check authentication when the page loads
   useEffect(() => {
@@ -170,6 +158,9 @@ export default function Home() {
         
         const studentId = student.SRNO || student.ROLLNO || '';
         
+        // Generate avatar params using our utility function
+        const avatarParams = generatePeoplifyAvatarParams(studentId || student.EMAILID || fullName);
+        
         return {
           id: student.SRNO || '',
           name: firstName || fullName.split(' ')[0] || '',
@@ -196,8 +187,8 @@ export default function Home() {
           motherName: student.MOTHERNAME || '',
           motherOccupation: student["MOTHER'S OCCUPATION"] || '',
           annualFamilyIncome: student["ANNUAL FAMILY INCOME"] || '',
-          // Generate a random avatar for each student
-          image_url: generateRandomAvatar(studentId || student.EMAILID || fullName),
+          // Use avatar params from the utility function
+          image_url: avatarParams,
           github_url: '',
           twitter_url: '',
           linkedin_url: '',
@@ -230,7 +221,8 @@ export default function Home() {
       // Add an extra step to assign random funny avatars to each student
       mappedResults = mappedResults.map(student => ({
         ...student,
-        image_url: generateRandomAvatar(student.id || student.rollno || student.email)
+        // Use the utility function
+        image_url: generatePeoplifyAvatarParams(student.id || student.rollno || student.email)
       }));
 
       console.log('Final filtered results:', mappedResults);
@@ -280,8 +272,248 @@ export default function Home() {
   };
 
   const handleShowDetails = (student: Student) => {
+    // First set the student with the data we already have to show some content immediately
     setSelectedStudent(student);
     setShowAllInfo(true);
+    setIsLoadingDetails(true);
+    
+    // Then fetch more detailed data asynchronously
+    const fetchDetailedStudentData = async () => {
+      try {
+        console.log('Fetching detailed data for student:', student.id || student.email);
+        
+        // Try different query approaches to maximize our chances of getting the data
+        let data;
+        let error;
+        
+        // Approach 1: Try using SRNO or ID
+        if (student.id) {
+          console.log('Trying to fetch by ID/SRNO:', student.id);
+          const result = await supabase
+            .from('student_data')
+            .select('*')
+            .eq('SRNO', student.id)
+            .single();
+            
+          if (!result.error && result.data) {
+            console.log('Successfully fetched data by SRNO');
+            data = result.data;
+          } else {
+            error = result.error;
+            console.warn('Failed to fetch by SRNO, error:', error?.message);
+          }
+        }
+        
+        // Approach 2: If ID didn't work, try email
+        if (!data && student.email) {
+          console.log('Trying to fetch by email:', student.email);
+          const result = await supabase
+            .from('student_data')
+            .select('*')
+            .eq('EMAILID', student.email)
+            .single();
+            
+          if (!result.error && result.data) {
+            console.log('Successfully fetched data by email');
+            data = result.data;
+          } else {
+            error = result.error;
+            console.warn('Failed to fetch by email, error:', error?.message);
+          }
+        }
+        
+        // Approach 3: Try various combinations of name and surname if available
+        if (!data && student.name && student.surname) {
+          console.log('Trying to fetch by name and surname');
+          // First try FIRSTNAME + LAST NAME
+          const result1 = await supabase
+            .from('student_data')
+            .select('*')
+            .eq('FIRSTNAME', student.name)
+            .eq('LAST NAME', student.surname)
+            .maybeSingle();
+            
+          if (!result1.error && result1.data) {
+            console.log('Successfully fetched data by FIRSTNAME + LAST NAME');
+            data = result1.data;
+          } else {
+            // Try NAME field which might contain full name
+            const fullName = `${student.name} ${student.surname}`;
+            console.log('Trying to fetch by full name:', fullName);
+            const result2 = await supabase
+              .from('student_data')
+              .select('*')
+              .eq('NAME', fullName)
+              .maybeSingle();
+              
+            if (!result2.error && result2.data) {
+              console.log('Successfully fetched data by NAME (full name)');
+              data = result2.data;
+            } else {
+              // Try ilike search on NAME as a last resort
+              console.log('Trying fuzzy name search as last resort');
+              const result3 = await supabase
+                .from('student_data')
+                .select('*')
+                .ilike('NAME', `%${student.name}%${student.surname}%`)
+                .maybeSingle();
+                
+              if (!result3.error && result3.data) {
+                console.log('Successfully fetched data by fuzzy name search');
+                data = result3.data;
+              } else {
+                error = result3.error || result2.error || result1.error;
+                console.warn('All name-based queries failed');
+              }
+            }
+          }
+        }
+        
+        // Try the API endpoint as a final fallback
+        if (!data && (student.id || student.email || (student.name && student.surname))) {
+          console.log('Trying API endpoint as final fallback');
+          try {
+            // Construct query params
+            const params = new URLSearchParams();
+            if (student.id) params.append('id', student.id);
+            if (student.email) params.append('email', student.email);
+            if (student.name) params.append('name', student.name);
+            if (student.surname) params.append('surname', student.surname);
+            
+            const response = await fetch(`/api/student/details?${params.toString()}`);
+            
+            if (response.ok) {
+              const apiData = await response.json();
+              if (apiData.success && apiData.data) {
+                console.log('Successfully fetched data via API endpoint');
+                // Map API response to a format compatible with the existing code
+                data = Object.entries(apiData.data).reduce((acc, [key, value]) => {
+                  // Convert back to uppercase for consistency with direct Supabase queries
+                  const upperKey = key.toUpperCase();
+                  acc[upperKey] = value;
+                  return acc;
+                }, {} as Record<string, any>);
+              }
+            } else {
+              console.warn('API endpoint failed:', await response.text());
+            }
+          } catch (apiError) {
+            console.error('Error using API endpoint:', apiError);
+          }
+        }
+        
+        if (!data) {
+          console.error('Failed to fetch detailed student data after all attempts');
+          if (error) {
+            console.error('Last error:', error);
+            toast({
+              title: "Data Fetch Error",
+              description: "Failed to fetch complete student details.",
+              variant: "destructive",
+            });
+          }
+          setIsLoadingDetails(false);
+          return;
+        }
+        
+        console.log('Fetched detailed student data:', data);
+        console.log('Available columns:', Object.keys(data));
+        
+        // Create enhanced student object with all available fields
+        const enhancedStudent: Student = {
+          ...student, // Keep existing data
+          
+          // Map all fields from the database record to our Student interface
+          // Basic fields
+          id: data.SRNO || student.id,
+          name: data.FIRSTNAME || (data.NAME ? data.NAME.split(' ')[0] : student.name),
+          surname: data['LAST NAME'] || (data.NAME && data.NAME.includes(' ') ? data.NAME.split(' ').slice(1).join(' ') : student.surname),
+          email: data.EMAILID || student.email,
+          
+          // Academic fields
+          rollno: data.ROLLNO || student.rollno,
+          registrationNo: data.REGISTRATION_NO || student.registrationNo,
+          enrollmentNumber: data["ENROLLMENT NUMBER"] || student.enrollmentNumber,
+          admissionType: data["ADMISSION TYPE"] || student.admissionType,
+          
+          // Personal details
+          father_name: data.FATHERNAME || student.father_name,
+          motherName: data.MOTHERNAME || student.motherName,
+          occupation: data["FATHER'S OCCUPATION"] || student.occupation,
+          motherOccupation: data["MOTHER'S OCCUPATION"] || student.motherOccupation,
+          gender: data.GENDER || student.gender,
+          dob: data.DOB || student.dob,
+          mobileNo: data["MOBILE NO."] || student.mobileNo,
+          nationality: data.NATIONALITY || student.nationality,
+          bloodGroup: data["BLOOD GROUP"] || student.bloodGroup,
+          maritalStatus: data["MARITAL STATUS"] || student.maritalStatus,
+          category: data.CATEGORY || student.category,
+          religion: data.RELIGION || student.religion,
+          subcast: data.SUB_CASTE || student.subcast,
+          adhaarNo: data["ADHAAR NO"] || student.adhaarNo,
+          
+          // Financial details
+          annualFamilyIncome: data["ANNUAL FAMILY INCOME"] || student.annualFamilyIncome,
+          bank_name: data["BANK NAME"] || student.bank_name,
+          ifsccode: data["IFSC CODE"] || student.ifsccode,
+          
+          // Academic records
+          tenth_marks_obtained: data["10TH MARKS OBTAINED"] || student.tenth_marks_obtained,
+          tenth_out_of_marks: data["10TH OUT OF MARKS"] || student.tenth_out_of_marks,
+          twelfth_marks_obtained: data["12TH MARKS OBTAINED"] || student.twelfth_marks_obtained,
+          twelfth_out_of_marks: data["12TH OUT OF MARKS"] || student.twelfth_out_of_marks,
+          diploma_marks_obtained: data["DIPLOMA MARKS"] || student.diploma_marks_obtained,
+          entrance_exam_percentage: data["ENTRANCE EXAM PERCENTAGE"] || student.entrance_exam_percentage,
+          
+          // Contact information
+          address_permanant: data["PERMANENT ADDRESS"] || student.address_permanant,
+          city_village_permanant: data["PERMANENT CITY/VILLAGE"] || student.city_village_permanant,
+          district_permanant: data["PERMANENT DISTRICT"] || student.district_permanant,
+          state_permanant: data["PERMANENT STATE"] || student.state_permanant,
+          address_local: data["LOCAL ADDRESS"] || student.address_local,
+          pin_local: data["LOCAL PIN"] || student.pin_local,
+          
+          // Other details
+          physically_handicapped: data["PHYSICALLY HANDICAPPED"] || student.physically_handicapped,
+          height: data["HEIGHT"] || student.height,
+          weight: data["WEIGHT"] || student.weight,
+          sport_name: data["SPORT NAME"] || student.sport_name,
+          
+          // Social media URLs
+          github_url: data["GITHUB URL"] || student.github_url,
+          twitter_url: data["TWITTER URL"] || student.twitter_url,
+          linkedin_url: data["LINKEDIN URL"] || student.linkedin_url,
+          instagram_url: data["INSTAGRAM URL"] || student.instagram_url,
+          
+          // Extended fields - Add all other available fields from the database
+          ...Object.entries(data).reduce((acc, [key, value]) => {
+            // Convert column names to camelCase for our interface
+            const camelKey = convertDbColumnToCamelCase(key);
+            
+            if (value !== null && value !== undefined && !Object.keys(student).includes(camelKey)) {
+              acc[camelKey] = value;
+            }
+            return acc;
+          }, {} as Record<string, any>),
+          
+          // Keep the image_url from the original student object
+          image_url: student.image_url
+        };
+        
+        console.log('Enhanced student object created with additional fields:', 
+          Object.keys(enhancedStudent).filter(key => !Object.keys(student).includes(key)));
+        
+        // Update the selected student with enhanced data
+        setSelectedStudent(enhancedStudent);
+      } catch (err) {
+        console.error('Unexpected error fetching student details:', err);
+      } finally {
+        setIsLoadingDetails(false);
+      }
+    };
+    
+    // Call the fetch function
+    fetchDetailedStudentData();
   };
 
   const handleCloseAllInfo = () => {
@@ -697,15 +929,15 @@ export default function Home() {
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen pb-16">
       {/* Navigation Bar */}
-      <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 transition-all duration-200 safe-area-inset-top">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 transition-all duration-200 safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center">
               <div className="flex items-center flex-shrink-0 mobile-ripple p-2 rounded-full">
-                <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-2 rounded-lg">
+                <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-2 rounded-lg shadow-teal-400/20 shadow-lg">
                   <Glasses className="h-6 w-6 text-white" />
                 </div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white ml-2">
+                <h1 className="text-xl sm:text-2xl font-bold ml-2 gradient-text">
                 Sherlock
               </h1>
               </div>
@@ -720,7 +952,7 @@ export default function Home() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="mobile-ripple rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="mobile-ripple rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-300"
               >
                 <ClientOnly>
                   {theme === "dark" ? 
@@ -734,7 +966,7 @@ export default function Home() {
               <Button
                 variant="ghost"
                 onClick={handleLogout}
-                className="text-slate-700 dark:text-slate-200 hidden sm:flex mobile-ripple"
+                className="text-slate-700 dark:text-slate-200 hidden sm:flex mobile-ripple transition-colors duration-300"
               >
                 <LogOut className="h-5 w-5 mr-2" />
                 Logout
@@ -744,7 +976,7 @@ export default function Home() {
                 variant="ghost"
                 size="icon"
                 onClick={handleLogout}
-                className="mobile-ripple rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 sm:hidden"
+                className="mobile-ripple rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 sm:hidden transition-colors duration-300"
               >
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Logout</span>
@@ -757,13 +989,13 @@ export default function Home() {
       <main className="container mx-auto px-4 py-6 mb-20">
         {/* Search Section */}
         <div className="text-center mb-10 sm:mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 tracking-tight animate-fadeIn">
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 tracking-tight animate-fadeIn gradient-text">
             Find Students
           </h2>
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 max-w-2xl mx-auto animate-fadeIn">
             Search through our comprehensive database of students
           </p>
-          <div className="max-w-3xl mx-auto bg-white dark:bg-slate-900/80 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-lg border border-slate-200 dark:border-slate-800 animate-swipeUp">
+          <div className="max-w-3xl mx-auto glass-card p-4 sm:p-6 animate-swipeUp">
             <SearchBar onSearch={handleSearch} isSearching={isSearching} />
             <div className="flex justify-end mt-3">
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
@@ -778,9 +1010,9 @@ export default function Home() {
         {searchResults.length > 0 && (
           <div className="space-y-8 animate-swipeUp">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 flex items-center">
-                <span>Search Results</span> 
-                <Badge variant="outline" className="ml-3 px-3 py-1 animate-fadeIn">
+              <h3 className="text-2xl font-bold flex items-center">
+                <span className="gradient-text">Search Results</span> 
+                <Badge className="ml-3 px-3 py-1 animate-fadeIn badge-primary">
                   {searchResults.length} student{searchResults.length !== 1 ? 's' : ''}
                 </Badge>
               </h3>
@@ -790,114 +1022,11 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {searchResults.map((student, index) => (
                 <div key={index} className="animate-cardEntrance relative" style={{ animationDelay: `${index * 0.05}s` }}>
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
-                    {/* More Details button at the top of card */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <Button
-                        onClick={() => handleShowDetails(student)}
-                        size="sm"
-                        variant="secondary"
-                        className="text-xs bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-sm"
-                      >
-                        <List className="h-3 w-3 mr-1" />
-                        More Details
-                      </Button>
-                    </div>
-                    
-                    <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-20 rounded-t-xl flex items-end">
-                      <div className="mx-auto -mb-12">
-                        <div className="h-24 w-24 rounded-full border-4 border-white dark:border-slate-900 overflow-hidden bg-white">
-                          <img 
-                            src={student.image_url} 
-                            alt={`${student.name} ${student.surname}`} 
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-14 pb-4 px-5 text-center">
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
-                        {student.name} {student.surname}
-                      </h3>
-                      
-                      <div className="flex flex-wrap gap-2 justify-center my-2">
-                        {student.rollno && (
-                          <Badge variant="outline" className="px-2 py-0.5">
-                            ID: {student.rollno}
-                          </Badge>
-                        )}
-                        {student.admissionType && (
-                          <Badge variant="outline" className="px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
-                            {student.admissionType}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3">
-                      <div className="grid grid-cols-1 gap-2">
-                        {student.email && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Mail className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
-                            <span className="text-slate-700 dark:text-slate-300 truncate">{student.email}</span>
-                          </div>
-                        )}
-                        {student.mobileNo && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
-                            <span className="text-slate-700 dark:text-slate-300">{student.mobileNo}</span>
-                          </div>
-                        )}
-                        {student.category && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Award className="h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
-                            <span className="text-slate-700 dark:text-slate-300">Category: {student.category}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3">
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                        {student.religion && (
-                          <div className="text-sm">
-                            <span className="text-slate-500 dark:text-slate-400">Religion:</span>
-                            <span className="font-medium text-slate-700 dark:text-slate-300 ml-1">{student.religion}</span>
-                          </div>
-                        )}
-                        {student.subcast && (
-                          <div className="text-sm">
-                            <span className="text-slate-500 dark:text-slate-400">Sub-caste:</span>
-                            <span className="font-medium text-slate-700 dark:text-slate-300 ml-1">{student.subcast}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex justify-between">
-                      <Button
-                        onClick={() => handleShowDetails(student)}
-                        size="sm" 
-                        variant="outline"
-                        className="text-xs"
-                      >
-                        <List className="h-3 w-3 mr-1" />
-                        More Details
-                      </Button>
-                      
-                      <Button
-                        onClick={() => showOsintModal(student)}
-                        size="sm" 
-                        variant="outline"
-                        className="text-xs"
-                        disabled={!student.email}
-                      >
-                        <Fingerprint className="h-3 w-3 mr-1" />
-                        OSINT Lookup
-                      </Button>
-                    </div>
-                  </div>
+                  <QuickSearchCard 
+                    student={student}
+                    onShowDetails={handleShowDetails}
+                    onOsintLookup={showOsintModal}
+                  />
                 </div>
               ))}
             </div>
@@ -906,7 +1035,7 @@ export default function Home() {
 
         {/* Empty State */}
         {searchResults.length === 0 && !isSearching && (
-          <div className="text-center mt-10 bg-white dark:bg-slate-900/60 rounded-xl p-8 sm:p-12 border border-slate-200 dark:border-slate-800 shadow-md animate-fadeIn">
+          <div className="text-center mt-10 glass-card p-8 sm:p-12 animate-fadeIn">
             <div className="inline-flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 mb-6 animate-pulse-soft">
               <Search className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
             </div>
@@ -921,11 +1050,11 @@ export default function Home() {
 
         {/* Loading State */}
         {isSearching && (
-          <div className="text-center mt-10 bg-white dark:bg-slate-900/60 rounded-xl p-8 sm:p-12 border border-slate-200 dark:border-slate-800 shadow-md animate-fadeIn">
+          <div className="text-center mt-10 glass-card p-8 sm:p-12 animate-fadeIn">
             <div className="inline-flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 mb-6">
               <div className="h-8 w-8 sm:h-10 sm:w-10 border-t-2 border-b-2 border-teal-500 rounded-full animate-spin"></div>
             </div>
-            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-2">
               Searching...
             </h3>
             <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
@@ -944,9 +1073,16 @@ export default function Home() {
                 <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-2 rounded-lg mr-3">
                   <User className="h-6 w-6 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                <h2 className="text-xl font-bold gradient-text">
                   {selectedStudent.name} {selectedStudent.surname} - Complete Information
                 </h2>
+                
+                {isLoadingDetails && (
+                  <div className="ml-4 flex items-center space-x-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full px-3 py-1 text-xs">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Loading additional data...</span>
+                  </div>
+                )}
               </div>
               <Button 
                 variant="ghost" 
@@ -972,7 +1108,7 @@ export default function Home() {
                 <Fingerprint className="h-4 w-4 mr-2" />
                 OSINT Lookup
               </Button>
-              <Button onClick={handleCloseAllInfo} className="mobile-ripple">Close</Button>
+              <Button onClick={handleCloseAllInfo} className="btn-primary mobile-ripple">Close</Button>
             </div>
           </div>
         </div>
@@ -1000,7 +1136,7 @@ export default function Home() {
             </div>
 
             <div className="p-6 overflow-y-auto mobile-scrollview">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 bg-slate-100 dark:bg-slate-800 p-4 rounded-lg animate-swipeUp">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 glass-card p-4 rounded-lg animate-swipeUp">
                 <div className="flex-shrink-0 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full h-16 w-16 flex items-center justify-center text-white font-bold text-xl mx-auto sm:mx-0">
                   {osintStudent.name.charAt(0)}
                   {osintStudent.surname ? osintStudent.surname.charAt(0) : ''}
@@ -1011,13 +1147,13 @@ export default function Home() {
                   </h3>
                   <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
                     {osintStudent.email && (
-                      <Badge variant="outline" className="flex items-center gap-1 px-2 py-1">
+                      <Badge className="flex items-center gap-1 px-2 py-1 badge-primary">
                         <Mail className="h-3 w-3" />
                         <span className="text-xs">{osintStudent.email}</span>
                       </Badge>
                     )}
                     {osintStudent.rollno && (
-                      <Badge variant="outline" className="flex items-center gap-1 px-2 py-1">
+                      <Badge className="flex items-center gap-1 px-2 py-1 badge-secondary">
                         <span className="text-xs">ID: {osintStudent.rollno}</span>
                       </Badge>
                     )}

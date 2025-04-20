@@ -48,11 +48,18 @@ export interface Student {
   ifsccode?: string;
   sport_name?: string;
   // URLs
-  image_url: string;
+  image_url: string | {
+    seed: string;
+    gender: string;
+  };
   github_url?: string;
   twitter_url?: string;
   linkedin_url?: string;
   instagram_url?: string;
+  
+  // Extended fields from full DB query
+  // These fields allow the Student interface to accept any additional properties from the database
+  [key: string]: any;
 }
 
 // Fallback values in case environment variables aren't available

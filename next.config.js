@@ -18,7 +18,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { 
-    domains: ['thpajmudzyytnpcbzbru.supabase.co'],
+    domains: ['thpajmudzyytnpcbzbru.supabase.co', 'ui-avatars.com', 'avatars.dicebear.com', 'peoplify.pics', 'api.multiavatar.com'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -26,6 +26,30 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.dicebear.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'peoplify.pics',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.multiavatar.com',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
 };

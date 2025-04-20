@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 
 interface ApiStatusCheckerProps {
   onFix?: () => void;
+  onAddCredits?: () => void;
 }
 
-export default function ApiStatusChecker({ onFix }: ApiStatusCheckerProps) {
+export default function ApiStatusChecker({ onFix, onAddCredits }: ApiStatusCheckerProps) {
   const [checking, setChecking] = useState(false);
-  const [status, setStatus] = useState<'success' | 'error' | 'unknown'>('unknown');
+  const [status, setStatus] = useState<'success' | 'needs-credits' | 'error' | 'unknown'>('unknown');
   const [message, setMessage] = useState<string>('');
 
   const checkApiStatus = async () => {
@@ -20,8 +21,15 @@ export default function ApiStatusChecker({ onFix }: ApiStatusCheckerProps) {
       const data = await response.json();
 
       if (data.success) {
-        setStatus('success');
-        setMessage(data.message || 'API is working correctly!');
+        if (data.needsCredits) {
+          // API is configured but out of credits
+          setStatus('needs-credits');
+          setMessage(data.message || 'API key is valid but your account has no more credits. Please purchase more credits or use mock data.');
+        } else {
+          // API is fully functional
+          setStatus('success');
+          setMessage(data.message || 'API is working correctly!');
+        }
       } else {
         setStatus('error');
         setMessage(data.error || 'API is not configured correctly.');
@@ -35,17 +43,19 @@ export default function ApiStatusChecker({ onFix }: ApiStatusCheckerProps) {
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-gray-50 mb-4">
+    <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50 mb-4">
       <h3 className="font-semibold text-lg mb-2">API Status Check</h3>
       
       <div className="flex items-center mb-4">
         <div className={`w-3 h-3 rounded-full mr-2 ${
           status === 'success' ? 'bg-green-500' :
+          status === 'needs-credits' ? 'bg-blue-500' :
           status === 'error' ? 'bg-red-500' :
           'bg-gray-300'
         }`}></div>
         <span className="text-sm">{
           status === 'success' ? 'API is working' :
+          status === 'needs-credits' ? 'API configured but needs credits' :
           status === 'error' ? 'API configuration issue' :
           'Status unknown'
         }</span>
@@ -53,9 +63,10 @@ export default function ApiStatusChecker({ onFix }: ApiStatusCheckerProps) {
       
       {message && (
         <div className={`text-sm rounded px-3 py-2 mb-3 ${
-          status === 'success' ? 'bg-green-100 text-green-800' :
-          status === 'error' ? 'bg-red-100 text-red-800' :
-          'bg-gray-100 text-gray-800'
+          status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+          status === 'needs-credits' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+          status === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
+          'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
         }`}>
           {message}
         </div>
@@ -76,6 +87,15 @@ export default function ApiStatusChecker({ onFix }: ApiStatusCheckerProps) {
             className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-sm"
           >
             Fix Configuration
+          </button>
+        )}
+        
+        {status === 'needs-credits' && onAddCredits && (
+          <button
+            onClick={onAddCredits}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Add Credits
           </button>
         )}
       </div>

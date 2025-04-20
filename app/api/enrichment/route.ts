@@ -15,7 +15,7 @@ function generateMockEnrichmentData(email: string) {
   // Generate more realistic mock data based on the example response format
   return {
     success: true,
-    email: email,
+      email: email,
     emailType: Math.random() > 0.5 ? 'professional' : 'personal',
     credits_left: 90000,
     rate_limit_left: 19000,
@@ -50,7 +50,7 @@ function generateMockEnrichmentData(email: string) {
             linkedInId: (Math.floor(Math.random() * 100000) + 1000).toString()
           },
           {
-            title: 'Software Engineer',
+          title: 'Software Engineer',
             companyName: 'Previous Company Inc',
             description: 'Full-stack development and API integration',
             startEndDate: {
@@ -113,7 +113,7 @@ function generateMockEnrichmentData(email: string) {
       }
     },
     _source: 'mock_data',
-    is_mock_data: true
+      is_mock_data: true
   };
 }
 
@@ -192,14 +192,14 @@ export async function GET(request: Request) {
         
         // Try with a different auth format
         const retryResponse = await fetch(fullUrl, {
-          method: 'GET',
-          headers: {
+      method: 'GET',
+      headers: {
             'Authorization': apiKey, // Try without Bearer prefix
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        });
-        
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
         // If retry succeeds, use it
         if (retryResponse.ok) {
           const data = await retryResponse.json();
@@ -215,12 +215,12 @@ export async function GET(request: Request) {
           ...mockData,
           _api_error: `ReverseContact API returned status ${response.status}. Error: ${errorText}`
         });
-      }
+    }
 
-      const data = await response.json();
+    const data = await response.json();
       console.log(`Successfully enriched data for email: ${email} using ReverseContact API`);
-      
-      // Add a flag to indicate this is real data, not mock
+    
+    // Add a flag to indicate this is real data, not mock
       data._source = 'reversecontact_api';
       
       // If there's no person or company data but the API call was successful,
@@ -235,8 +235,8 @@ export async function GET(request: Request) {
           _api_message: 'No data found for this email in the ReverseContact database'
         });
       }
-      
-      return NextResponse.json(data);
+    
+    return NextResponse.json(data);
     } catch (fetchError) {
       console.error('Fetch error:', fetchError);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {

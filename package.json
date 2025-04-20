@@ -28,6 +28,7 @@
     "@expo/metro-config": "^0.19.12",
     "@mui/icons-material": "^5.11.16",
     "@mui/material": "^5.13.0",
+    "@multiavatar/multiavatar": "^1.0.7",
     "@next/swc-wasm-nodejs": "13.5.1",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
