@@ -63,7 +63,7 @@ export default function RootLayout({
       )}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <div className="flex flex-col min-h-screen">
-            <Toaster position="top-center" />
+            <Toaster />
             <ClientOnly>
               <ApiStatusBanner />
             </ClientOnly>
