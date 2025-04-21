@@ -21,8 +21,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const error = searchParams.get("error") || "";
-  const errorCode = searchParams.get("error_code") || "";
+  const error = searchParams?.get("error") || "";
+  const errorCode = searchParams?.get("error_code") || "";
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
