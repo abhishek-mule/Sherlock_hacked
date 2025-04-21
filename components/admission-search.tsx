@@ -59,9 +59,9 @@ export default function AdmissionSearch() {
       
       setResults(data.data || []);
       setTotalPages(data.metadata?.totalPages || 1);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Search error:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
       setResults([]);
     } finally {
       setLoading(false);
