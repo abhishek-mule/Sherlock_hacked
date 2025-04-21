@@ -30,7 +30,7 @@ import {
   Printer,
   FileJson,
   FileSpreadsheet,
-  FilePdf
+  FileText
 } from 'lucide-react';
 import {
   DropdownMenu,
