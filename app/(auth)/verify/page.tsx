@@ -18,10 +18,10 @@ export default function VerifyPage() {
   const [isExpired, setIsExpired] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get("email") || "";
-  const error = searchParams.get("error") || "";
-  const errorCode = searchParams.get("error_code") || "";
-  const errorDescription = searchParams.get("error_description") || "";
+  const email = searchParams?.get("email") || "";
+  const error = searchParams?.get("error") || "";
+  const errorCode = searchParams?.get("error_code") || "";
+  const errorDescription = searchParams?.get("error_description") || "";
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 

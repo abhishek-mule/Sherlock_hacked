@@ -49,7 +49,7 @@ export function SimpleReverseContactDemo() {
     // Check if we're in a browser environment (client-side)
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
-      const emailParam = searchParams.get('email');
+      const emailParam = searchParams?.get('email');
       
       if (emailParam) {
         // Only set the email from URL parameter, don't auto-submit

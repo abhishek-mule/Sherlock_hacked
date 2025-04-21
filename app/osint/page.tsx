@@ -116,8 +116,8 @@ export default function OSINTPage() {
     // Read the query parameter when the component mounts
     if (typeof window !== 'undefined') {
     const searchParams = new URLSearchParams(window.location.search);
-    const name = searchParams.get("name");
-      const email = searchParams.get("email");
+    const name = searchParams?.get("name");
+      const email = searchParams?.get("email");
     
     if (name) {
       setStudentName(name);
