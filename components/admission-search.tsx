@@ -25,15 +25,15 @@ import { Search, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function AdmissionSearch() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState('sr_no');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
   // Fetch data with current filters
   const fetchData = async () => {
@@ -75,12 +75,12 @@ export default function AdmissionSearch() {
   };
 
   // Handle page change
-  const handlePageChange = (newPage) => {
+  const handlePageChange = (newPage: number) => {
     setPage(newPage);
   };
 
   // Handle sorting
-  const handleSort = (column) => {
+  const handleSort = (column: string) => {
     if (sortBy === column) {
       // Toggle sort order if clicking same column
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -92,7 +92,7 @@ export default function AdmissionSearch() {
   };
 
   // Handle row click to view student details
-  const viewStudentDetails = (student) => {
+  const viewStudentDetails = (student: any) => {
     setSelectedStudent(student);
   };
 
