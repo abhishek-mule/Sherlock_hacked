@@ -248,7 +248,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-6 border-t border-white/10 text-center">
             <p className="text-sm text-slate-400">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Button 
                 variant="link" 
                 className="text-teal-400 hover:text-teal-300 p-0"
