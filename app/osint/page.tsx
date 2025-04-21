@@ -210,7 +210,7 @@ export default function OSINTPage() {
     }
   };
   
-  const generateSocialProfiles = (fullName: string) => {
+  const generateSocialProfiles = (fullName: string): SocialProfile[] => {
     const nameParts = fullName.trim().split(/\s+/);
     let firstName = "";
     let lastName = "";
@@ -275,6 +275,7 @@ export default function OSINTPage() {
     });
     
     setSocialProfiles(profiles);
+    return profiles;
   };
 
   const generateMockData = async (email: string): Promise<OsintResults> => {
@@ -290,7 +291,23 @@ export default function OSINTPage() {
     const fullName = `${firstName} ${lastName}`;
     
     // Generate social profiles
-    const socialProfiles = generateSocialProfiles(`${firstName}${lastName}`);
+    const socialProfiles: any[] = [
+      {
+        platform: "GitHub",
+        url: `https://github.com/${firstName.toLowerCase()}${lastName.toLowerCase()}`,
+        handle: `${firstName.toLowerCase()}${lastName.toLowerCase()}`
+      },
+      {
+        platform: "LinkedIn",
+        url: `https://www.linkedin.com/in/${firstName.toLowerCase()}.${lastName.toLowerCase()}`,
+        handle: `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
+      },
+      {
+        platform: "Twitter",
+        url: `https://twitter.com/${firstName.toLowerCase()}_${lastName.toLowerCase()}`,
+        handle: `${firstName.toLowerCase()}_${lastName.toLowerCase()}`
+      }
+    ];
     
     // Mock work history
     const workHistory: WorkPosition[] = [
@@ -302,7 +319,7 @@ export default function OSINTPage() {
           size: "501-1000 employees"
         },
         start_date: "2020-01",
-        end_date: null,
+        end_date: undefined,
         is_current: true
       },
       {
