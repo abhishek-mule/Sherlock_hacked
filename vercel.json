@@ -1,0 +1,42 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "images": {
+    "sizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    "domains": ["thpajmudzyytnpcbzbru.supabase.co", "ui-avatars.com", "avatars.dicebear.com", "peoplify.pics", "api.multiavatar.com"],
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "thpajmudzyytnpcbzbru.supabase.co"
+      },
+      {
+        "protocol": "https",
+        "hostname": "ui-avatars.com"
+      },
+      {
+        "protocol": "https",
+        "hostname": "avatars.dicebear.com"
+      },
+      {
+        "protocol": "https",
+        "hostname": "peoplify.pics"
+      },
+      {
+        "protocol": "https",
+        "hostname": "api.multiavatar.com"
+      }
+    ]
+  },
+  "headers": [
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+} 

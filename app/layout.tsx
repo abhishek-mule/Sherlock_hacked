@@ -3,9 +3,9 @@ import type { Metadata } from 'next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { cn } from '@/lib/utils'
-import { Inter, Poppins } from 'next/font/google'
 import { ClientOnly } from '@/components/client-only'
 import { ApiStatusBanner } from '@/components/ApiStatusBanner'
+import localFont from 'next/font/local'
 
 // Add dynamic rendering config
 export const dynamic = 'force-dynamic';
@@ -19,17 +19,57 @@ export const metadata: Metadata = {
   themeColor: '#0f172a',
 }
 
-// Font configuration
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+// Font configuration - using locally hosted fonts
+const inter = localFont({
+  src: [
+    {
+      path: '../public/fonts/inter/inter-regular.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/inter/inter-medium.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/inter/inter-semibold.woff2',
+      weight: '600',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/inter/inter-bold.woff2',
+      weight: '700',
+      style: 'normal',
+    }
+  ],
   variable: '--font-inter',
   display: 'swap',
 })
 
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const poppins = localFont({
+  src: [
+    {
+      path: '../public/fonts/poppins/poppins-regular.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/poppins/poppins-medium.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/poppins/poppins-semibold.woff2',
+      weight: '600',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/poppins/poppins-bold.woff2',
+      weight: '700',
+      style: 'normal',
+    }
+  ],
   variable: '--font-poppins',
   display: 'swap',
 })
