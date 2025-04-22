@@ -26,8 +26,8 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       Math.min(totalPages - 1, currentPage + 1)
     ];
     
-    // Filter and sort all pages
-    return [...new Set([...pages, ...surroundingPages])]
+    // Filter and sort all pages - using Array.from instead of spread operator to avoid TypeScript issues
+    return Array.from(new Set([...pages, ...surroundingPages]))
       .filter(p => p > 0 && p <= totalPages)
       .sort((a, b) => a - b);
   };
