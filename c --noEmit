@@ -1,0 +1,7 @@
+[33mcommit bd8d9e342a46553480f42790673221ff505b77ae[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32madd_detailing[m[33m)[m
+Author: Abhishek Mule <abhimule2709@gmail.com>
+Date:   Tue Apr 22 20:43:00 2025 +0530
+
+    Fix TypeScript build error in pagination component by replacing Set spread with Array.from
+
+M	components/ui/pagination.tsx

@@ -8,9 +8,16 @@ export const createClient = () => {
   const cookieStore = cookies();
   
   return supabaseCreateClient(supabaseUrl, supabaseKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storage: {
+        getItem: (name: string) => {
+          const cookie = cookieStore.get(name);
+          return cookie?.value || null;
+        },
+        setItem: () => {},
+        removeItem: () => {},
       },
     },
   });

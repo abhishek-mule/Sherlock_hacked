@@ -29,8 +29,7 @@ import {
   Download,
   Printer,
   FileJson,
-  FileSpreadsheet,
-  FileText
+  FileSpreadsheet
 } from 'lucide-react';
 import {
   DropdownMenu,

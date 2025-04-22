@@ -116,7 +116,7 @@ export function EnhancedStudentCard({
           <Avatar className="border-2 border-white shadow-md">
             <RandomProfilePicture
               seed={student.email}
-              gender={student.gender || "male"}
+              gender={student.gender === "male" ? "Male" : "Female"}
               size={isCompact ? 40 : 48}
               className="h-auto w-auto transition-transform duration-300 hover:scale-105"
               alt={`Profile picture of ${student.first_name} ${student.last_name}`}
@@ -201,7 +201,7 @@ export function EnhancedStudentCard({
             variant="outline"
             size="sm"
             className="text-xs mobile-ripple"
-            onClick={() => onOsintLookup(student)}
+            onClick={() => onOsintLookup && onOsintLookup(student)}
           >
             <SearchIcon className="mr-1 h-3 w-3" />
             OSINT Lookup

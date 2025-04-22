@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/card';
 import { AnimatedPage } from '@/components/AnimatedPage';
 import { Button } from '@/components/ui/button';
-import { ReloadIcon } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 // Type definitions
 interface PeoplifyAvatar {
@@ -153,9 +153,9 @@ export function RandomAvatarsGrid({
           className="flex items-center gap-2"
         >
           {loading ? (
-            <ReloadIcon className="h-4 w-4 animate-spin" />
+            <RefreshCw className="h-4 w-4 animate-spin" />
           ) : (
-            <ReloadIcon className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" />
           )}
           Refresh Avatars
         </Button>
