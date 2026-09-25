@@ -126,12 +126,14 @@ func (p *HttpProvider) Check(ctx context.Context, t target.Target) (evidence.Evi
 	}
 	ev.RawSnippet = &snip
 
-	if p.NotFoundContains != "" && strings.Contains(bs, p.NotFoundContains) {
+	// Exponential-backoff style confidence: check signals
+	lower := strings.ToLower(bs)
+	if p.NotFoundContains != "" && strings.Contains(lower, strings.ToLower(p.NotFoundContains)) {
 		ev.Status = evidence.StatusNotFound
 		ev.Confidence = evidence.ConfidenceNegative
 		return ev, nil
 	}
-	if p.SuccessContains != "" && strings.Contains(bs, p.SuccessContains) {
+	if p.SuccessContains != "" && strings.Contains(lower, strings.ToLower(p.SuccessContains)) {
 		ev.Status = evidence.StatusFound
 		ev.Confidence = evidence.ConfidenceWeak
 		ov := t.Normalized
@@ -139,7 +141,13 @@ func (p *HttpProvider) Check(ctx context.Context, t target.Target) (evidence.Evi
 		ev.NormalizedValue = &ov
 		return ev, nil
 	}
-	// Default: 200 without clear signal → inconclusive (not FOUND)
+	// Heuristic: GitHub 200 with profile header strongly indicates FOUND
+	if strings.Contains(lower, "profile") && strings.Contains(lower, t.Normalized) {
+		ev.Status = evidence.StatusFound
+		ev.Confidence = evidence.ConfidenceWeak
+		ov := t.Normalized; ev.ObservedValue = &ov; ev.NormalizedValue = &ov
+		return ev, nil
+	}
 	if resp.StatusCode == 200 {
 		ev.Status = evidence.StatusInconclusive
 		ev.Confidence = evidence.ConfidenceAmbiguous

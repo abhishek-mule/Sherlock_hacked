@@ -6,6 +6,11 @@ import (
 	"github.com/abhishek-mule/Sherlock_hacked/internal/core/registry"
 	"github.com/abhishek-mule/Sherlock_hacked/internal/core/target"
 	"github.com/abhishek-mule/Sherlock_hacked/internal/providers/base"
+	"github.com/abhishek-mule/Sherlock_hacked/internal/providers/crypto"
+	"github.com/abhishek-mule/Sherlock_hacked/internal/providers/domain"
+	"github.com/abhishek-mule/Sherlock_hacked/internal/providers/onion"
+	"github.com/abhishek-mule/Sherlock_hacked/internal/providers/phone"
+	urlprov "github.com/abhishek-mule/Sherlock_hacked/internal/providers/url"
 )
 
 // DefaultRegistry returns a registry with built-in providers (inspired by holehe/user-scanner ideas, not copied).
@@ -53,5 +58,11 @@ func DefaultRegistry() *registry.Registry {
 		URLTemplate: "https://github.com/search?q={email}&type=users",
 		Limiter: lim,
 	})
+	// Local / lawful providers (no external PII leakage)
+	_ = r.Register(&domain.RDAPProvider{})
+	_ = r.Register(&urlprov.MetadataProvider{})
+	_ = r.Register(&phone.Provider{})
+	_ = r.Register(&crypto.Provider{})
+	_ = r.Register(&onion.Provider{})
 	return r
 }

@@ -20,6 +20,9 @@ var privateCIDRs = []string{
 
 var privateNets []*net.IPNet
 
+// AllowPrivateForTest permits 127.0.0.1 in unit tests when set to true.
+var AllowPrivateForTest bool
+
 func init() {
 	for _, c := range privateCIDRs {
 		_, n, _ := net.ParseCIDR(c)
@@ -56,9 +59,9 @@ func ValidateURL(raw string) error {
 	if lower == "localhost" || lower == "metadata.google.internal" {
 		return fmt.Errorf("blocked host: %s", host)
 	}
-	// If host is IP literal, check privateness
+	// If host is IP literal, check privateness (allow 127.0.0.1 in tests)
 	if ip := net.ParseIP(host); ip != nil {
-		if IsPrivateIP(ip) {
+		if IsPrivateIP(ip) && !(AllowPrivateForTest && ip.IsLoopback()) {
 			return fmt.Errorf("blocked private IP: %s", host)
 		}
 	}
