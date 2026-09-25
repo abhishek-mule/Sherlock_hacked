@@ -50,6 +50,15 @@ export default function Home() {
     checkAuth();
   }, [router]);
 
+  // Demo fallback when Supabase not configured / offline
+  const DEMO_FALLBACK: any[] = [
+    { SRNO: 9001, NAME: 'Alex Johnson', FIRSTNAME: 'Alex', 'LAST NAME': 'Johnson', EMAILID: 'alex.johnson@example.com', ROLLNO: 'SYN9001', REGISTRATION_NO: '230110001', FATHERNAME: 'Raj Johnson', CATEGORY: 'OPEN' },
+    { SRNO: 9002, NAME: 'Priya Sharma', FIRSTNAME: 'Priya', 'LAST NAME': 'Sharma', EMAILID: 'priya.sharma@example.com', ROLLNO: 'SYN9002', REGISTRATION_NO: '230110002', FATHERNAME: 'Amit Sharma', CATEGORY: 'OBC' },
+    { SRNO: 9003, NAME: 'Porus Demo', FIRSTNAME: 'Porus', 'LAST NAME': 'Demo', EMAILID: 'porus@demo.local', ROLLNO: 'DEMO001', REGISTRATION_NO: 'DEMO001', FATHERNAME: 'Demo', CATEGORY: 'OPEN' },
+    { SRNO: 9004, NAME: 'Adarsh Pandey', FIRSTNAME: 'Adarsh', 'LAST NAME': 'Pandey', EMAILID: 'adarsh@example.com', ROLLNO: '4107123', REGISTRATION_NO: '24412320137', FATHERNAME: 'Punam', CATEGORY: 'OPEN' },
+  ];
+  const isSupabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
   const handleSearch = async (name: string, surname?: string) => {
     setIsSearching(true);
     try {
@@ -59,6 +68,57 @@ export default function Home() {
         console.log('No search parameters provided');
         setSearchResults([]);
         setIsSearching(false);
+        return;
+      }
+
+      // If Supabase not configured, use local demo fallback immediately
+      if (!isSupabaseConfigured) {
+        console.warn('[search] Supabase not configured — using demo fallback');
+        const term = name.toLowerCase();
+        let data: any[] = DEMO_FALLBACK.filter(r => {
+          const n = `${r.NAME} ${r.FIRSTNAME} ${r['LAST NAME']} ${r.ROLLNO}`.toLowerCase();
+          return n.includes(term);
+        });
+        if (data.length === 0) {
+          // show demo results as hint when no match
+          toast({ title: 'Demo Mode', description: 'Supabase not configured — showing demo students. Set env to query real DB.' });
+          data = DEMO_FALLBACK;
+        }
+        // fall through to mapping below
+        let mappedResults = (data || []).map(student => {
+          const fullName = student.NAME || '';
+          const firstName = student.FIRSTNAME || '';
+          const lastName = student['LAST NAME'] || '';
+          return {
+            id: String(student.SRNO || ''),
+            name: firstName || fullName.split(' ')[0] || '',
+            surname: lastName || (fullName.includes(' ') ? fullName.split(' ').slice(1).join(' ') : ''),
+            email: student.EMAILID || '',
+            father_name: student.FATHERNAME || '',
+            occupation: student["FATHER'S OCCUPATION"] || '',
+            category: student.CATEGORY || '',
+            religion: student.RELIGION || '',
+            subcast: student.SUB_CASTE || '',
+            rollno: String(student.ROLLNO || ''),
+            registrationNo: String(student.REGISTRATION_NO || ''),
+            enrollmentNumber: student["ENROLLMENT NUMBER"] || '',
+            admissionType: student["ADMISSION TYPE"] || '',
+            mobileNo: student["MOBILE NO."] || '',
+            dob: student.DOB || '',
+            gender: student.GENDER || '',
+            nationality: student.NATIONALITY || '',
+            bloodGroup: student["BLOOD GROUP"] || '',
+            maritalStatus: student["MARITAL STATUS"] || '',
+            socialCategory: student["SOCIAL CATEGORY"] || '',
+            adhaarNo: student["ADHAAR NO"] || '',
+            motherName: student.MOTHERNAME || '',
+            motherOccupation: student["MOTHER'S OCCUPATION"] || '',
+            annualFamilyIncome: student["ANNUAL FAMILY INCOME"] || '',
+            image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(student.SRNO) || 1),
+            github_url: '', twitter_url: '', linkedin_url: '', instagram_url: ''
+          };
+        });
+        setSearchResults(mappedResults);
         return;
       }
 
@@ -73,9 +133,20 @@ export default function Home() {
 
       if (error) {
         console.error('Supabase query error:', error);
+        // Fallback to demo on query error (e.g., RLS / network)
+        const term = name.toLowerCase();
+        const fallback = DEMO_FALLBACK.filter(r => `${r.NAME} ${r.FIRSTNAME} ${r.ROLLNO}`.toLowerCase().includes(term));
+        if (fallback.length > 0) {
+          toast({ title: 'Showing demo results', description: 'Supabase query failed — displaying local demo data.' });
+          let mappedResults = fallback.map(student => ({
+            id: String(student.SRNO || ''), name: student.FIRSTNAME || '', surname: student['LAST NAME'] || '', email: student.EMAILID || '', father_name: student.FATHERNAME || '', occupation: '', category: student.CATEGORY || '', religion: '', subcast: '', rollno: String(student.ROLLNO || ''), registrationNo: String(student.REGISTRATION_NO || ''), enrollmentNumber: '', admissionType: '', mobileNo: '', dob: '', gender: '', nationality: '', bloodGroup: '', maritalStatus: '', socialCategory: '', adhaarNo: '', motherName: '', motherOccupation: '', annualFamilyIncome: '', image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(student.SRNO) || 1), github_url: '', twitter_url: '', linkedin_url: '', instagram_url: ''
+          }));
+          setSearchResults(mappedResults);
+          return;
+        }
         toast({
           title: "Search Error",
-          description: "Failed to search for students. Please try again.",
+          description: error.message || "Failed to search for students. Please try again.",
           variant: "destructive",
         });
         setSearchResults([]);
