@@ -33,3 +33,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Sherlock Hacked — local-first protections (DO NOT REMOVE)
+*.backup
+*.dump
+*.db
+*.sqlite
+*.sqlite3
+data/sherlock.db
+data/*.db
+.env
+.env.local
+.env.*.local
+frontend/wailsjs/
+frontend/node_modules/
+frontend/dist/
+build/bin/
+bin/sherlock-hacked
+fixtures/private/
+*.pem
+*.key

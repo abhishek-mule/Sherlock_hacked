@@ -1,0 +1,4 @@
+[
+  {"sr_no": 9001, "roll_no": "SYN9001", "name": "Alex Johnson", "email": "alex.johnson@example.com", "branch": "Computer Science", "city": "Pune"},
+  {"sr_no": 9002, "roll_no": "SYN9002", "name": "Priya Sharma", "email": "priya.sharma@example.com", "branch": "Information Technology", "city": "Nagpur"}
+]

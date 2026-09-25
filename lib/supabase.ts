@@ -33,9 +33,14 @@ export interface Student {
   instagram_url?: string;
 }
 
-// Fallback values in case environment variables aren't available
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://thpajmudzyytnpcbzbru.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRocGFqbXVkenl5dG5wY2J6YnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0NDExMzYsImV4cCI6MjA2MDAxNzEzNn0.B6qtIN-DBQVXd-aFIKmzOrgnQM3w1_vQMF2HToBwZ_k';
+// Supabase config — secrets must come from environment (see .env.example).
+// The hardcoded fallback was removed (was leaking anon key). In development,
+// set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('[supabase] Missing NEXT_PUBLIC_SUPABASE_URL / ANON_KEY — set them in .env (see .env.example). Local SQLite is the primary DB.');
+}
 
 // Create a single supabase client for interacting with your database
 export const supabase = createClient(
