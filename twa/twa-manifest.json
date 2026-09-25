@@ -1,0 +1,31 @@
+{
+  "packageId": "com.sherlock.hacked",
+  "host": "sherlock-five.vercel.app",
+  "name": "Sherlock Hacked",
+  "launcherName": "Sherlock",
+  "display": "standalone",
+  "themeColor": "#0f172a",
+  "navigationColor": "#0f172a",
+  "backgroundColor": "#0f172a",
+  "startUrl": "/",
+  "iconUrl": "https://sherlock-five.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://sherlock-five.vercel.app/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap",
+  "webManifestUrl": "https://sherlock-five.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": { "enabled": true },
+    "playBilling": { "enabled": false }
+  },
+  "alphaDependencies": { "enabled": false },
+  "enableNotifications": true,
+  "isChromeOSOnly": false
+}

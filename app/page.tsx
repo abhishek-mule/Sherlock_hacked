@@ -6,8 +6,9 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { StudentCard } from '@/components/student-card';
 import { EnhancedStudentCard } from '@/components/enhanced-student-card';
 import { BottomNav } from '@/components/ui/bottom-nav';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail } from 'lucide-react';
+import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail, Download } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { supabase, Student } from '@/lib/supabase';
 import { CSVImport } from '@/components/csv-import';
@@ -347,6 +348,7 @@ export default function Home() {
             </div>
             
             <div className="flex items-center gap-1 sm:gap-4">
+              <Link href="/download" className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline"><Download className="h-4 w-4" /> Download APK</Link>
               <div className="hidden sm:block">
               <CSVImport />
               </div>
