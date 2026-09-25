@@ -10,13 +10,17 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Glasses, LogOut, Moon, Sun, Search, List, ChevronDown, ChevronUp, Eye, Fingerprint, Github, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Mail, Download } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { supabase, Student } from '@/lib/supabase';
+import { Student } from '@/lib/supabase';
 import { CSVImport } from '@/components/csv-import';
 import { ClientOnly } from '@/components/client-only';
 import { signOut } from '@/lib/session';
 import { toast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AllStudentInfo } from '@/components/all-student-info';
+// Local-first data from backup (sanitized) — Supabase removed
+import studentsEnriched from '@/fixtures/synthetic/students-enriched.json';
+import admissionsEnriched from '@/fixtures/synthetic/admissions-enriched.json';
+import osintEnriched from '@/fixtures/synthetic/osint-enriched.json';
 
 // Add dynamic rendering config
 export const dynamic = 'force-dynamic';
@@ -32,38 +36,19 @@ export default function Home() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
 
-  // Add useEffect to check authentication when the page loads
+  // Local-only auth — porus/porus demo (Supabase removed)
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        if (typeof window !== 'undefined' && localStorage.getItem('sherlock_demo_session') === '1') return;
-      } catch {}
-      const { data } = await supabase.auth.getSession();
-      
-      if (!data.session) {
-        // No active session, redirect to login
-        console.log('No active session, redirecting to login');
-        router.push('/login');
-      }
-    };
-    
-    checkAuth();
+    try {
+      if (typeof window !== 'undefined' && localStorage.getItem('sherlock_demo_session') === '1') return;
+    } catch {}
+    // No Supabase — if no demo session, redirect to login
+    router.push('/login');
   }, [router]);
 
-  // Demo fallback when Supabase not configured / offline — enriched from db_cluster-31-07-2025 backup (sanitized: no email/mobile/Aadhaar)
-  // 124 rows: SRNO, NAME, FIRSTNAME, LAST NAME, ROLLNO, REGISTRATION_NO, PROGRAMME/BRANCH, CITY, GENDER, CATEGORY
-  const DEMO_FALLBACK: any[] = (() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      return require('@/fixtures/synthetic/students-enriched.json') as any[];
-    } catch {
-      return [
-        { SRNO: 9001, NAME: 'Alex Johnson', FIRSTNAME: 'Alex', 'LAST NAME': 'Johnson', ROLLNO: 'SYN9001', REGISTRATION_NO: '230110001', 'PROGRAMME/BRANCH': 'Computer Technology', CITY: 'Pune', GENDER: 'MALE', CATEGORY: 'OPEN' },
-        { SRNO: 9002, NAME: 'Priya Sharma', FIRSTNAME: 'Priya', 'LAST NAME': 'Sharma', ROLLNO: 'SYN9002', REGISTRATION_NO: '230110002', 'PROGRAMME/BRANCH': 'IT', CITY: 'Nagpur', GENDER: 'FEMALE', CATEGORY: 'OBC' },
-      ];
-    }
-  })();
-  const isSupabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  // Local-first store — backup sanitized, Supabase removed
+  const LOCAL_STUDENTS = studentsEnriched as any[];
+  const LOCAL_ADMISSIONS = admissionsEnriched as any[];
+  const LOCAL_OSINT = osintEnriched as any[];
 
   const handleSearch = async (name: string, surname?: string) => {
     setIsSearching(true);
@@ -77,29 +62,38 @@ export default function Home() {
         return;
       }
 
-      // If Supabase not configured, use local demo fallback immediately (enriched 124 sanitized from backup + backup admission/osint)
-      if (!isSupabaseConfigured) {
-        console.warn('[search] Supabase not configured — using enriched demo fallback');
-        const term = name.toLowerCase();
-        // also inject Porus if searching porus
+      // Precise local search — no Supabase
+      {
+        const term = name.toLowerCase().trim();
         const base = (() => {
-          const hasPorus = DEMO_FALLBACK.some((r: any) => `${r.FIRSTNAME}`.toLowerCase().includes('porus'));
+          const hasPorus = LOCAL_STUDENTS.some((r: any) => `${r.FIRSTNAME}`.toLowerCase().includes('porus'));
           if (!hasPorus && term.includes('porus')) {
-            return [...DEMO_FALLBACK, { SRNO: 'DEMO_PORUS', NAME: 'Porus Demo', FIRSTNAME: 'Porus', 'LAST NAME': 'Demo', ROLLNO: 'DEMO001', REGISTRATION_NO: 'DEMO001', 'PROGRAMME/BRANCH': 'OSINT', CITY: 'Pune', GENDER: 'MALE', CATEGORY: 'OPEN', EMAILID: 'porus@demo.local' }];
+            return [...LOCAL_STUDENTS, { SRNO: 'DEMO_PORUS', NAME: 'Porus Demo', FIRSTNAME: 'Porus', 'LAST NAME': 'Demo', ROLLNO: 'DEMO001', REGISTRATION_NO: 'DEMO001', 'PROGRAMME/BRANCH': 'OSINT', CITY: 'Pune', GENDER: 'MALE', CATEGORY: 'OPEN' }];
           }
-          return DEMO_FALLBACK;
+          return LOCAL_STUDENTS;
         })();
-        let data: any[] = base.filter(r => {
+        // Ranking: exact token match first, then substring
+        let scored = base.map(r => {
           const hay = `${r.NAME} ${r.FIRSTNAME} ${r['LAST NAME']} ${r.ROLLNO} ${r.REGISTRATION_NO} ${r['PROGRAMME/BRANCH'] || ''} ${r.CITY || ''}`.toLowerCase();
-          return hay.includes(term);
-        });
+          const exact = hay.split(/\s+/).includes(term) || String(r.ROLLNO).toLowerCase() === term || String(r.REGISTRATION_NO).toLowerCase() === term;
+          const includes = hay.includes(term);
+          return { r, score: exact ? 2 : includes ? 1 : 0 };
+        }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).map(x => x.r);
+        let data: any[] = scored;
         if (data.length === 0) {
-          // show demo results as hint when no match — limit to 20 for UX
-          toast({ title: 'Demo Mode', description: `No match for "${name}" — showing sample from backup (sanitized, 124 rows). Try: Abha, Aditi, Porus, Computer Technology, Nagpur.` });
-          data = base.slice(0, 20);
+          toast({ title: 'No match', description: `No precise match for "${name}" in local backup (124 students). Try: Abha, Aditi, Porus, Computer Technology, Nagpur, or a roll like 101.` });
+          data = [];
         } else if (data.length > 50) {
           data = data.slice(0, 50);
         }
+        // Enrich with OSINT/admission from backup where available
+        const enrich = (s: any) => {
+          const key = `${s.FIRSTNAME} ${s['LAST NAME']}`.toLowerCase().trim();
+          const os = LOCAL_OSINT.find((o: any) => o.student_name.toLowerCase().includes(key) || key.includes(o.student_name.toLowerCase().split(' ')[0] || ''));
+          const ad = LOCAL_ADMISSIONS.find((a: any) => a.full_name.toLowerCase().includes(key));
+          return { ...s, _osint: os || null, _admission: ad || null };
+        };
+        data = data.map(enrich);
         // fall through to mapping below
         let mappedResults = (data || []).map(student => {
           const fullName = student.NAME || '';
@@ -130,173 +124,27 @@ export default function Home() {
             motherName: student.MOTHERNAME || '',
             motherOccupation: student["MOTHER'S OCCUPATION"] || '',
             annualFamilyIncome: student["ANNUAL FAMILY INCOME"] || '',
-            image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(student.SRNO) || 1),
-            github_url: '', twitter_url: '', linkedin_url: '', instagram_url: ''
+            image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(student.SRNO) || (Math.abs((student.NAME||'').length) || 1)),
+            github_url: student._osint?.github || '',
+            twitter_url: '', linkedin_url: '', instagram_url: '',
+            // enriched from backup (non-PII)
+            // @ts-ignore
+            branch: student['PROGRAMME/BRANCH'] || student._admission?.branch || '',
+            // @ts-ignore
+            city: student.CITY || student._admission?.city || '',
+            // @ts-ignore
+            skills: student._osint?.skills || '',
+            // @ts-ignore
+            location: student._osint?.location || student.CITY || ''
           };
         });
         setSearchResults(mappedResults);
         return;
       }
 
-      console.log('Searching with uppercase column names');
-
-      // Create a case-insensitive search using ilike with the actual column names from DB
-      console.log('Executing Supabase query with case-insensitive search...');
-      let { data, error } = await supabase
-        .from('student_data')
-        .select('*')
-        .or(`NAME.ilike.%${name}%,FIRSTNAME.ilike.%${name}%`);
-
-      if (error) {
-        console.error('Supabase query error:', error);
-        // Fallback to demo on query error (e.g., RLS / network)
-        const term = name.toLowerCase();
-        const fallback = DEMO_FALLBACK.filter(r => `${r.NAME} ${r.FIRSTNAME} ${r.ROLLNO}`.toLowerCase().includes(term));
-        if (fallback.length > 0) {
-          toast({ title: 'Showing demo results', description: 'Supabase query failed — displaying local demo data.' });
-          let mappedResults = fallback.map(student => ({
-            id: String(student.SRNO || ''), name: student.FIRSTNAME || '', surname: student['LAST NAME'] || '', email: student.EMAILID || '', father_name: student.FATHERNAME || '', occupation: '', category: student.CATEGORY || '', religion: '', subcast: '', rollno: String(student.ROLLNO || ''), registrationNo: String(student.REGISTRATION_NO || ''), enrollmentNumber: '', admissionType: '', mobileNo: '', dob: '', gender: '', nationality: '', bloodGroup: '', maritalStatus: '', socialCategory: '', adhaarNo: '', motherName: '', motherOccupation: '', annualFamilyIncome: '', image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(student.SRNO) || 1), github_url: '', twitter_url: '', linkedin_url: '', instagram_url: ''
-          }));
-          setSearchResults(mappedResults);
-          return;
-        }
-        toast({
-          title: "Search Error",
-          description: error.message || "Failed to search for students. Please try again.",
-          variant: "destructive",
-        });
-        setSearchResults([]);
-        return;
-      }
-
-      // Debug information about columns and results
-      console.log('Raw data returned from database:', data);
-      console.log(`Query returned ${data?.length || 0} total records`);
-      
-      if (data && data.length > 0) {
-        console.log('First record columns:', Object.keys(data[0]));
-      } else {
-        // Try searching in the ROLLNO field as well
-        console.log('No results found. Trying ROLLNO search...');
-        const { data: rollnoData, error: rollnoError } = await supabase
-          .from('student_data')
-          .select('*')
-          .ilike('ROLLNO', `%${name}%`);
-          
-        if (!rollnoError && rollnoData && rollnoData.length > 0) {
-          console.log('Found matches with ROLLNO search:', rollnoData.length);
-          data = rollnoData;
-        } else {
-          // Try searching in all text fields
-          console.log('No results with specific column search. Trying broader search...');
-          
-          // Get all data and filter in JavaScript
-          const { data: allData, error: allError } = await supabase
-            .from('student_data')
-            .select('*')
-            .limit(100); // Limit to prevent excessive data transfer
-            
-          if (!allError && allData && allData.length > 0) {
-            console.log('Found records in the table:', allData.length);
-            // Filter manually in JavaScript
-            const searchTerm = name.toLowerCase();
-            const filteredData = allData.filter(record => {
-              // Check NAME, FIRSTNAME, LAST NAME fields
-              const fullName = (record.NAME || '').toLowerCase();
-              const firstName = (record.FIRSTNAME || '').toLowerCase();
-              const lastName = (record['LAST NAME'] || '').toLowerCase();
-              const rollNo = String(record.ROLLNO || '').toLowerCase();
-              
-              return fullName.includes(searchTerm) || 
-                     firstName.includes(searchTerm) || 
-                     lastName.includes(searchTerm) || 
-                     rollNo.includes(searchTerm);
-            });
-            
-            if (filteredData.length > 0) {
-              console.log('Found matches with manual filtering:', filteredData.length);
-              data = filteredData;
-            }
-          }
-        }
-      }
-      
-      // Map the database records to our Student interface
-      let mappedResults = (data || []).map(student => {
-        // Use the actual column names from the database
-        const fullName = student.NAME || '';
-        const firstName = student.FIRSTNAME || '';
-        const lastName = student['LAST NAME'] || '';
-        
-        console.log(`Mapping record with fullName: "${fullName}", firstName: "${firstName}", lastName: "${lastName}"`);
-        
-        return {
-          id: student.SRNO || '',
-          name: firstName || fullName.split(' ')[0] || '',
-          surname: lastName || (fullName.includes(' ') ? fullName.split(' ').slice(1).join(' ') : ''),
-          email: student.EMAILID || '',
-          father_name: student.FATHERNAME || '',
-          occupation: student["FATHER'S OCCUPATION"] || '',
-          category: student.CATEGORY || '',
-          religion: student.RELIGION || '',
-          subcast: student.SUB_CASTE || '',
-          // Additional fields from the schema
-          rollno: student.ROLLNO || '',
-          registrationNo: student.REGISTRATION_NO || '',
-          enrollmentNumber: student["ENROLLMENT NUMBER"] || '',
-          admissionType: student["ADMISSION TYPE"] || '',
-          mobileNo: student["MOBILE NO."] || '',
-          dob: student.DOB || '',
-          gender: student.GENDER || '',
-          nationality: student.NATIONALITY || '',
-          bloodGroup: student["BLOOD GROUP"] || '',
-          maritalStatus: student["MARITAL STATUS"] || '',
-          socialCategory: student["SOCIAL CATEGORY"] || '',
-          adhaarNo: student["ADHAAR NO"] || '',
-          motherName: student.MOTHERNAME || '',
-          motherOccupation: student["MOTHER'S OCCUPATION"] || '',
-          annualFamilyIncome: student["ANNUAL FAMILY INCOME"] || '',
-          image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(student.SRNO) || 1),
-          github_url: '',
-          twitter_url: '',
-          linkedin_url: '',
-          instagram_url: ''
-        };
-      });
-
-      // Filter out records with insufficient information
-      mappedResults = mappedResults.filter(student => {
-        // Calculate a "completeness score" based on available fields
-        let hasData = false;
-        
-        // Required fields (must have at least one of these to be considered valid)
-        if (student.name && student.name.trim().length > 1) hasData = true;
-        
-        // Supporting fields (not required but improve the record quality)
-        let detailsScore = 0;
-        if (student.rollno) detailsScore += 3;
-        if (student.email) detailsScore += 2;
-        if (student.registrationNo) detailsScore += 2;
-        if (student.father_name) detailsScore += 1;
-        if (student.motherName) detailsScore += 1;
-        if (student.enrollmentNumber) detailsScore += 2;
-        if (student.dob) detailsScore += 1;
-        
-        // Check if this is likely a valid student record (has name + some details)
-        return hasData && detailsScore > 0;
-      });
-
-      console.log('Final filtered results:', mappedResults);
-      
-      if (mappedResults.length === 0) {
-        toast({
-          title: "No Results",
-          description: "No students found matching your search criteria.",
-          variant: "default",
-        });
-      }
-
-      setSearchResults(mappedResults);
+      // Supabase removed — local results already set above, this path is unreachable
+      // kept for reference: old Supabase query block deleted
+      // (search now uses LOCAL_STUDENTS enriched from backup, with OSINT merge)
     } catch (error) {
       console.error('Error searching students:', error);
       toast({
