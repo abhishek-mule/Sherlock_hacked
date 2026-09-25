@@ -1,3 +1,10 @@
 export default function Entities() {
-  return <div><h2 className="text-2xl font-bold mb-4">Entities</h2><p className="text-slate-500">Local-first • SQLite • Evidence-grade. This view is connected to Go core via Wails bindings (App.*).</p><div className="mt-4 border rounded p-4 bg-white dark:bg-slate-800 text-sm">Coming online with Wails bindings — offline DB search, timeline, and exports remain usable without external providers.</div></div>
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Entities (Graph)</h2>
+      <p className="text-slate-500 mb-4">Target → Findings → Evidence → Potential Relationships (never identity claim).</p>
+      <div className="border rounded h-64 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-400">React Flow graph — connected via App.GetGraph (evidence correlations)</div>
+      <p className="text-xs text-slate-400 mt-2">Correlation produces “potential relationship” with score &amp; evidence — not an identity assertion.</p>
+    </div>
+  )
 }

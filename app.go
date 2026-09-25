@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -176,26 +177,64 @@ func (a *App) SearchEntities(q string) ([]SearchResult, error) {
 	if a.db == nil {
 		return nil, fmt.Errorf("db not open")
 	}
-	if len(q) < 2 {
-		return nil, fmt.Errorf("query too short")
-	}
-	like := "%" + q + "%"
-	rows, err := a.db.SQL.Query(`SELECT canonical_value, type FROM entities WHERE canonical_value LIKE ? LIMIT 20`, like)
+	results, err := a.db.SearchEntities(q, 20)
 	if err != nil {
-		// fallback to synthetic tables
-		rows, err = a.db.SQL.Query(`SELECT name, 'student' FROM student_data_synthetic WHERE name LIKE ? LIMIT 20`, like)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
-	defer rows.Close()
 	var out []SearchResult
-	for rows.Next() {
-		var v, t string
-		if err := rows.Scan(&v, &t); err != nil {
-			continue
-		}
-		out = append(out, SearchResult{ID: v, Value: v, Type: t})
+	for _, r := range results {
+		out = append(out, SearchResult{ID: r["value"], Value: r["value"], Type: r["type"]})
 	}
 	return out, nil
+}
+
+func (a *App) ListInvestigations(limit int) ([]map[string]interface{}, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("db not open")
+	}
+	return a.db.ListInvestigations(limit)
+}
+
+func (a *App) ExportReport(id string, format string) (string, error) {
+	if a.db == nil {
+		return "", fmt.Errorf("db not open")
+	}
+	rows, err := a.db.SQL.Query(`SELECT provider, query, status, confidence, source_url, observed_value FROM observations WHERE investigation_id=?`, id)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	var findings []map[string]string
+	var providers []string
+	for rows.Next() {
+		var p, q, s, c, url, ov string
+		_ = rows.Scan(&p, &q, &s, &c, &url, &ov)
+		findings = append(findings, map[string]string{"provider": p, "query": q, "status": s, "confidence": c, "source_url": url, "observed_value": ov})
+		providers = append(providers, p)
+	}
+	// Build report via internal/report
+	invRow := a.db.SQL.QueryRow(`SELECT target_raw, target_type FROM investigations WHERE id=?`, id)
+	var raw, typ string
+	_ = invRow.Scan(&raw, &typ)
+	if raw == "" {
+		raw = id
+	}
+	switch format {
+	case "csv":
+		var sb string
+		sb = "provider,query,status,confidence,source_url,observed_value\n"
+		for _, f := range findings {
+			sb += f["provider"] + "," + f["query"] + "," + f["status"] + "," + f["confidence"] + "," + f["source_url"] + "," + f["observed_value"] + "\n"
+		}
+		return sb, nil
+	case "md":
+		md := "# Investigation " + id + "\n\nTarget: " + raw + " (" + typ + ")\n\n| Provider | Status | Confidence | Source |\n|---|---|---|---|\n"
+		for _, f := range findings {
+			md += "| " + f["provider"] + " | " + f["status"] + " | " + f["confidence"] + " | " + f["source_url"] + " |\n"
+		}
+		return md, nil
+	default:
+		b, _ := json.MarshalIndent(findings, "", "  ")
+		return string(b), nil
+	}
 }

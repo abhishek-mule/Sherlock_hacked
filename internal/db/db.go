@@ -161,3 +161,73 @@ func (d *DB) Status() (Status, error) {
 	}
 	return s, nil
 }
+
+func (d *DB) ListInvestigations(limit int) ([]map[string]interface{}, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	rows, err := d.SQL.Query(`SELECT id, target_raw, target_normalized, target_type, status, created_at FROM investigations ORDER BY created_at DESC LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []map[string]interface{}
+	for rows.Next() {
+		var id, raw, norm, typ, status, created string
+		if err := rows.Scan(&id, &raw, &norm, &typ, &status, &created); err != nil {
+			continue
+		}
+		out = append(out, map[string]interface{}{"id": id, "target_raw": raw, "target_normalized": norm, "target_type": typ, "status": status, "created_at": created})
+	}
+	return out, nil
+}
+
+func (d *DB) SearchEntities(q string, limit int) ([]map[string]string, error) {
+	if len(q) < 2 {
+		return nil, fmt.Errorf("query too short")
+	}
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	like := "%" + q + "%"
+	// Try entities first
+	rows, err := d.SQL.Query(`SELECT canonical_value, type FROM entities WHERE canonical_value LIKE ? LIMIT ?`, like, limit)
+	if err != nil || rows == nil {
+		rows, err = d.SQL.Query(`SELECT name, 'student' FROM student_data_synthetic WHERE name LIKE ? LIMIT ?`, like, limit)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// peek if empty, fallback
+		var tmp []map[string]string
+		for rows.Next() {
+			var v, t string
+			_ = rows.Scan(&v, &t)
+			tmp = append(tmp, map[string]string{"value": v, "type": t})
+		}
+		rows.Close()
+		if len(tmp) > 0 {
+			return tmp, nil
+		}
+		rows, err = d.SQL.Query(`SELECT name, 'student' FROM student_data_synthetic WHERE name LIKE ? LIMIT ?`, like, limit)
+		if err != nil {
+			return tmp, nil
+		}
+		defer rows.Close()
+		var out []map[string]string
+		for rows.Next() {
+			var v, t string
+			_ = rows.Scan(&v, &t)
+			out = append(out, map[string]string{"value": v, "type": t})
+		}
+		return out, nil
+	}
+	defer rows.Close()
+	var out []map[string]string
+	for rows.Next() {
+		var v, t string
+		_ = rows.Scan(&v, &t)
+		out = append(out, map[string]string{"value": v, "type": t})
+	}
+	return out, nil
+}
