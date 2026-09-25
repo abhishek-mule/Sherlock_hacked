@@ -34,6 +34,9 @@ export default function Home() {
   // Add useEffect to check authentication when the page loads
   useEffect(() => {
     const checkAuth = async () => {
+      try {
+        if (typeof window !== 'undefined' && localStorage.getItem('sherlock_demo_session') === '1') return;
+      } catch {}
       const { data } = await supabase.auth.getSession();
       
       if (!data.session) {

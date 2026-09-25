@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
 import { supabase } from "@/lib/supabase";
 import { ClientOnly } from "@/components/client-only";
+import { setDemoSession } from "@/lib/session";
 
 // Add dynamic rendering config
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,16 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+      const em = email.trim();
+      const pw = password.trim();
+      // Demo login: porus / porus (allowed without email format)
+      if ((em.toLowerCase() === 'porus' || em.toLowerCase() === 'porus@demo.local') && pw === 'porus') {
+        setDemoSession();
+        toast({ title: "Welcome porus!", description: "Logged in with demo account (local-only)." });
+        router.push("/");
+        return;
+      }
+
       // First check if the email is in a valid format
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         toast({
@@ -177,17 +188,21 @@ export default function LoginPage() {
         </div>
 
         <Card className="p-6 bg-white/10 backdrop-blur-lg border-white/20">
+          <div className="mb-4 p-3 rounded-lg bg-teal-500/20 border border-teal-400/30 text-sm text-teal-100">
+            <strong>Demo:</strong> <code className="bg-white/20 px-1.5 py-0.5 rounded">porus</code> / <code className="bg-white/20 px-1.5 py-0.5 rounded">porus</code>
+            <Button variant="link" className="text-teal-200 h-auto p-0 ml-2 text-xs" onClick={() => { setEmail('porus'); setPassword('porus'); }}>Fill demo</Button>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-white">Email</Label>
+              <Label htmlFor="email" className="text-white">Email or username</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder="porus or your email"
                   className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-teal-400 focus:ring-teal-400/20"
                   required
                 />

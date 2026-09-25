@@ -1,10 +1,25 @@
 import { supabase } from './supabase';
 
+const DEMO_KEY = 'sherlock_demo_session';
+export const DEMO_USER = { id: 'demo-porus', email: 'porus@demo.local', username: 'porus', role: 'demo' };
+
+export function isDemoSession(): boolean {
+  if (typeof window === 'undefined') return false;
+  try { return localStorage.getItem(DEMO_KEY) === '1'; } catch { return false; }
+}
+export function setDemoSession(): void {
+  try { localStorage.setItem(DEMO_KEY, '1'); localStorage.setItem('sherlock_demo_user', JSON.stringify(DEMO_USER)); } catch {}
+}
+export function clearDemoSession(): void {
+  try { localStorage.removeItem(DEMO_KEY); localStorage.removeItem('sherlock_demo_user'); } catch {}
+}
+
 /**
  * Checks if a user is authenticated
  * @returns Promise<boolean> True if user is authenticated
  */
 export async function isAuthenticated(): Promise<boolean> {
+  if (isDemoSession()) return true;
   try {
     const { data, error } = await supabase.auth.getSession();
     
@@ -45,10 +60,13 @@ export async function getCurrentUser() {
  * @returns Promise<boolean> True if sign out was successful
  */
 export async function signOut(): Promise<boolean> {
+  clearDemoSession();
   try {
     const { error } = await supabase.auth.signOut();
     
     if (error) {
+      // still consider demo signout success
+      if (isDemoSession()) return true;
       console.error('Sign out error:', error.message);
       return false;
     }
@@ -56,7 +74,7 @@ export async function signOut(): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('Sign out exception:', error);
-    return false;
+    return true;
   }
 }
 
