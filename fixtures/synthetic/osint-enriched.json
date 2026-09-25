@@ -1,0 +1,80 @@
+[
+  {
+    "student_name": "ADARSH PANDEY",
+    "skills": "",
+    "location": "",
+    "github": ""
+  },
+  {
+    "student_name": "RIYA CHANDRASHEKHAR AMBADKAR",
+    "skills": "Project Management, English",
+    "location": "Nagpur, Maharashtra, India",
+    "github": ""
+  },
+  {
+    "student_name": "PRASHANTSINGH CHAUHAN",
+    "skills": "Java, CSS, Python, HTML5, Oracle SQL Developer",
+    "location": "Nagpur, Maharashtra, India",
+    "github": ""
+  },
+  {
+    "student_name": "CHAKRADHAR CHOKHANDE",
+    "skills": "Android, C (Programming Language)",
+    "location": "Pimpri Chinchwad, Maharashtra, India",
+    "github": ""
+  },
+  {
+    "student_name": "GANESH LONDHE",
+    "skills": "Problem Solving, Data Science, Python",
+    "location": "Nagpur, Maharashtra, India",
+    "github": ""
+  },
+  {
+    "student_name": "RITIK JAISWAL",
+    "skills": "Python, ML, Problem Solving",
+    "location": "Nagpur, Maharashtra, India",
+    "github": ""
+  },
+  {
+    "student_name": "MANSI KATRE",
+    "skills": "",
+    "location": "",
+    "github": ""
+  },
+  {
+    "student_name": "SAYALEE NICHANTE",
+    "skills": "",
+    "location": "Nagpur Rural, Maharashtra, India",
+    "github": ""
+  },
+  {
+    "student_name": "KANAK PATLE",
+    "skills": "",
+    "location": "Gondia, Maharashtra, India",
+    "github": ""
+  },
+  {
+    "student_name": "PREM RAHANGDALE",
+    "skills": "HTML, Python, JS",
+    "location": "Nagpur, Maharashtra, India",
+    "github": "https://github.com/prem789k-coder"
+  },
+  {
+    "student_name": "ANSHUMAN SHAHU",
+    "skills": "Linux, Flutter, Cybersecurity",
+    "location": "Nagpur, Maharashtra, India",
+    "github": ""
+  },
+  {
+    "student_name": "ALISHA SHEIKH",
+    "skills": "",
+    "location": "",
+    "github": ""
+  },
+  {
+    "student_name": "SWAPNIL BORKAR",
+    "skills": "",
+    "location": "Nagpur, Maharashtra, India",
+    "github": ""
+  }
+]

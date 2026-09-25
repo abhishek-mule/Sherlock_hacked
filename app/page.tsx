@@ -50,13 +50,19 @@ export default function Home() {
     checkAuth();
   }, [router]);
 
-  // Demo fallback when Supabase not configured / offline
-  const DEMO_FALLBACK: any[] = [
-    { SRNO: 9001, NAME: 'Alex Johnson', FIRSTNAME: 'Alex', 'LAST NAME': 'Johnson', EMAILID: 'alex.johnson@example.com', ROLLNO: 'SYN9001', REGISTRATION_NO: '230110001', FATHERNAME: 'Raj Johnson', CATEGORY: 'OPEN' },
-    { SRNO: 9002, NAME: 'Priya Sharma', FIRSTNAME: 'Priya', 'LAST NAME': 'Sharma', EMAILID: 'priya.sharma@example.com', ROLLNO: 'SYN9002', REGISTRATION_NO: '230110002', FATHERNAME: 'Amit Sharma', CATEGORY: 'OBC' },
-    { SRNO: 9003, NAME: 'Porus Demo', FIRSTNAME: 'Porus', 'LAST NAME': 'Demo', EMAILID: 'porus@demo.local', ROLLNO: 'DEMO001', REGISTRATION_NO: 'DEMO001', FATHERNAME: 'Demo', CATEGORY: 'OPEN' },
-    { SRNO: 9004, NAME: 'Adarsh Pandey', FIRSTNAME: 'Adarsh', 'LAST NAME': 'Pandey', EMAILID: 'adarsh@example.com', ROLLNO: '4107123', REGISTRATION_NO: '24412320137', FATHERNAME: 'Punam', CATEGORY: 'OPEN' },
-  ];
+  // Demo fallback when Supabase not configured / offline — enriched from db_cluster-31-07-2025 backup (sanitized: no email/mobile/Aadhaar)
+  // 124 rows: SRNO, NAME, FIRSTNAME, LAST NAME, ROLLNO, REGISTRATION_NO, PROGRAMME/BRANCH, CITY, GENDER, CATEGORY
+  const DEMO_FALLBACK: any[] = (() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return require('@/fixtures/synthetic/students-enriched.json') as any[];
+    } catch {
+      return [
+        { SRNO: 9001, NAME: 'Alex Johnson', FIRSTNAME: 'Alex', 'LAST NAME': 'Johnson', ROLLNO: 'SYN9001', REGISTRATION_NO: '230110001', 'PROGRAMME/BRANCH': 'Computer Technology', CITY: 'Pune', GENDER: 'MALE', CATEGORY: 'OPEN' },
+        { SRNO: 9002, NAME: 'Priya Sharma', FIRSTNAME: 'Priya', 'LAST NAME': 'Sharma', ROLLNO: 'SYN9002', REGISTRATION_NO: '230110002', 'PROGRAMME/BRANCH': 'IT', CITY: 'Nagpur', GENDER: 'FEMALE', CATEGORY: 'OBC' },
+      ];
+    }
+  })();
   const isSupabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   const handleSearch = async (name: string, surname?: string) => {
@@ -71,18 +77,28 @@ export default function Home() {
         return;
       }
 
-      // If Supabase not configured, use local demo fallback immediately
+      // If Supabase not configured, use local demo fallback immediately (enriched 124 sanitized from backup + backup admission/osint)
       if (!isSupabaseConfigured) {
-        console.warn('[search] Supabase not configured — using demo fallback');
+        console.warn('[search] Supabase not configured — using enriched demo fallback');
         const term = name.toLowerCase();
-        let data: any[] = DEMO_FALLBACK.filter(r => {
-          const n = `${r.NAME} ${r.FIRSTNAME} ${r['LAST NAME']} ${r.ROLLNO}`.toLowerCase();
-          return n.includes(term);
+        // also inject Porus if searching porus
+        const base = (() => {
+          const hasPorus = DEMO_FALLBACK.some((r: any) => `${r.FIRSTNAME}`.toLowerCase().includes('porus'));
+          if (!hasPorus && term.includes('porus')) {
+            return [...DEMO_FALLBACK, { SRNO: 'DEMO_PORUS', NAME: 'Porus Demo', FIRSTNAME: 'Porus', 'LAST NAME': 'Demo', ROLLNO: 'DEMO001', REGISTRATION_NO: 'DEMO001', 'PROGRAMME/BRANCH': 'OSINT', CITY: 'Pune', GENDER: 'MALE', CATEGORY: 'OPEN', EMAILID: 'porus@demo.local' }];
+          }
+          return DEMO_FALLBACK;
+        })();
+        let data: any[] = base.filter(r => {
+          const hay = `${r.NAME} ${r.FIRSTNAME} ${r['LAST NAME']} ${r.ROLLNO} ${r.REGISTRATION_NO} ${r['PROGRAMME/BRANCH'] || ''} ${r.CITY || ''}`.toLowerCase();
+          return hay.includes(term);
         });
         if (data.length === 0) {
-          // show demo results as hint when no match
-          toast({ title: 'Demo Mode', description: 'Supabase not configured — showing demo students. Set env to query real DB.' });
-          data = DEMO_FALLBACK;
+          // show demo results as hint when no match — limit to 20 for UX
+          toast({ title: 'Demo Mode', description: `No match for "${name}" — showing sample from backup (sanitized, 124 rows). Try: Abha, Aditi, Porus, Computer Technology, Nagpur.` });
+          data = base.slice(0, 20);
+        } else if (data.length > 50) {
+          data = data.slice(0, 50);
         }
         // fall through to mapping below
         let mappedResults = (data || []).map(student => {
