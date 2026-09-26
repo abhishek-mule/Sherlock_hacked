@@ -1,89 +1,172 @@
-# Sherlock Hacked — Local-First Desktop OSINT Platform
+# Sherlock Hacked — Local-First Record Intelligence
 
-> **Evidence collection → normalization → correlation → confidence → timeline**
+Search and inspect the two local workbooks, with evidence-grade matching and provenance.
+Everything runs on your machine. No hosted backend, no Supabase, no account.
 
-Sherlock Hacked is rebuilt as a **local-first desktop investigation platform** (Go core + Wails + React). The legacy Next.js app is retained as deprecated; the shipped product is `Go + SQLite` with explicit evidence handling.
+---
 
-[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8)]() [![Wails](https://img.shields.io/badge/Wails-v2-DF0000)]() [![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57)]()
+## Run locally
+
+### Requirements
+
+| Tool | Version | Needed for |
+|------|---------|-----------|
+| Node.js | 18+ (20/22 recommended) | web app |
+| Python 3 | 3.9+ with `openpyxl` | converting the `.xlsx` workbooks |
+| Go | 1.22+ | CLI + the OSINT core |
+| JDK 17 | optional | only for building the Android APK |
+
+```bash
+# Python dependency (once)
+pip3 install --break-system-packages openpyxl
+```
+
+### Steps
+
+```bash
+git clone https://github.com/abhishek-mule/Sherlock_hacked.git
+cd Sherlock_hacked
+
+# 1. install web dependencies
+npm install
+
+# 2. build the local dataset from the two workbooks
+#    (db_cluster_data.xlsx and "MASTER DATABASE 7BT CT 2026_27 B(2).xlsx"
+#     must sit in the repo root — they are gitignored and never uploaded)
+python3 scripts/ingest.py
+
+# 3. start the app
+npm run dev
+```
+
+Open <http://localhost:3000> and sign in with:
+
+```
+username: porus
+password: porus
+```
+
+You should see the header pill read `124 rec · 178 fld`. If it says **no dataset**, step 2
+did not run or the workbooks were not found.
+
+### Step 2 output
+
+```
+  wrote data/full-students.json  (124 records)
+  wrote data/master-7bt.json    (69 records)
+  wrote data/osint.json         (13 records)
+  wrote data/admissions.json    (963 records)
+
+  unified=124  master_7bt_merge=49  osint_merge=3
+  fields per student record = 178 (student_data) + 15 (master)
+```
+
+Re-run it any time the workbooks change — it overwrites cleanly.
+
+### Other entrypoints
+
+```bash
+go run ./cmd/cli db status              # local SQLite store
+go run ./cmd/cli providers list         # registered OSINT providers
+go run ./cmd/cli scan username johndoe  # username enumeration
+go run ./version
+
+cd frontend && npm run dev              # Wails/Vite frontend alone
+wails dev                               # desktop shell (needs the Wails toolchain)
+```
+
+---
+
+## Where the data lives
+
+```
+*.xlsx                     ← your workbooks (gitignored, never uploaded)
+data/full-students.json    ← 124 records × 178 fields (gitignored)
+data/master-7bt.json       ← 69 records
+data/osint.json            ← 13 records
+data/admissions.json       ← 963 records
+data/reveal-audit.log      ← written when high-risk fields are revealed
+fixtures/synthetic/        ← sanitized sample committed to the repo
+```
+
+The full dataset is served **server-side** by `app/api/students`, so PII is never bundled
+into the browser JavaScript.
+
+**Privacy behaviour**
+
+- Aadhaar, passport, bank, IFSC and family income are **masked by default**
+  (`644106635909` → `**********09`)
+- Unmasking requires a request from `localhost`; a public host gets `reveal_blocked`
+- Every unmask is appended to `data/reveal-audit.log`
+- `.githooks/pre-commit` blocks workbooks, `data/*.json`, record dumps >200 KB and
+  credential-shaped strings. CI re-checks the same things.
+
+Records are shown exactly as they exist in the workbooks. Where two workbooks describe
+the same person, the UI reports that as **provenance** (see the Sources tab), not as proof
+of identity.
+
+---
+
+## Search
+
+| Query type | Example | Behaviour |
+|---|---|---|
+| Exact ID | `101`, `230110570` | wins over any name guess |
+| Exact field | `abha`, `gunjan` | direct equality on a name field |
+| All tokens | `aditi singh` | every token must appear |
+| Fuzzy | `borka`, `adit singh` | Jaro-Winkler ≥ 0.82, tolerates typos |
+| Too short | `a`, `ab` | never claims "no match" — offers suggestions |
+
+Press `⌘K` / `Ctrl+K` for the command palette. `Enter` opens the top result, `Esc` clears.
+
+---
 
 ## Architecture
 
 ```
-React+TS (frontend/) → Wails bindings (app.go) → Go Core (internal/core) → SQLite (data/sherlock.db)
-                                    ↘ CLI (cmd/cli) shares same core
-```
-Core subsystems: TargetNormalizer, ProviderRegistry, DiscoveryEngine (worker pool, 5 concurrency), EvidenceCollector, ConfidenceEngine, EntityResolver, CorrelationEngine, Cache, RateLimiter, ReportGenerator, Security (SSRF).
-
-```
-PostgreSQL backup (local) → inspect→classify→allowlist→normalize→ SQLite → validation report
-Default: synthetic/fixtures only. Real student PII needs --include-private (local only, never committed).
+Next.js pages ──> /api/students ──> data/*.json        (record search, local)
+Wails bindings ──> internal/core ──> SQLite             (OSINT engine)
+cmd/cli ─────────> internal/core                          (same core, no UI)
 ```
 
-See `PRD.md` and `TRD.md` for full product/technical spec.
+`internal/core`: `target` normalizer, `provider` registry, `discovery` engine (5-way
+concurrency, 3 retries with backoff, 1 h cache, per-host rate limit), `evidence`,
+`confidence`, `entity` resolver, `correlation`, `report` (JSON/CSV/Markdown), `security`
+(SSRF guard).
 
-## Quickstart
+Statuses are never collapsed to a boolean: `FOUND`, `NOT_FOUND`, `INCONCLUSIVE`,
+`RATE_LIMITED`, `BLOCKED`, `UNAVAILABLE`, `ERROR`. Correlation produces a *potential
+relationship* with supporting evidence — never an identity claim.
+
+### Adding a provider
+
+Implement `registry.Provider` (`ID`, `Name`, `TargetTypes`, `Check(ctx, target)`) in
+`internal/providers/<type>/`, then register it in `internal/providers/registry.go`. No UI
+change required.
+
+---
+
+## Testing
 
 ```bash
-# Prerequisites: Go 1.22+, Node 18+, Wails v2.8 (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
-git clone https://github.com/abhishek-mule/Sherlock_hacked.git
-cd Sherlock_hacked
-git checkout feat/wails-go-core   # or main after PR
-
-# Desktop (Wails)
-wails doctor          # verify prerequisites
-wails dev             # Go + Vite HMR
-wails build           # → build/bin/SherlockHacked
-
-# CLI (secondary, same core)
-go build -o bin/sherlock-hacked ./cmd/cli
-./bin/sherlock-hacked providers list
-./bin/sherlock-hacked db status
-./bin/sherlock-hacked db import db_cluster-31-07-2025@22-17-59.backup
-ALLOW_PRIVATE_IMPORT=1 ./bin/sherlock-hacked db import db_cluster-31-07-2025@22-17-59.backup --include-private
-./bin/sherlock-hacked scan username johndoe
-./bin/sherlock-hacked investigate johndoe@example.com
-./bin/sherlock-hacked export <investigation-id> --format json|csv|md
-
-# Frontend only (without Wails)
-cd frontend && npm install && npm run build
-```
-
-## Database — Local-First, Private by Default
-
-- `data/sherlock.db` is SQLite + WAL, gitignored. Do **not** commit `*.backup` / `*.db`.
-- Default import loads **synthetic fixtures** (`fixtures/synthetic/`) + sanitized `admission_data`/`osint_data`. Sensitive `student_data` (≈180 cols: Aadhaar, mobiles, addresses, bank, etc.) is `SENSITIVE` and skipped unless `--include-private` + `ALLOW_PRIVATE_IMPORT=1`.
-- Row-count validation is logged: `admission_data` 963 / `osint_data` 13 / `student_data` 124 in backup → SQLite counts verified.
-- Offline guarantee: with providers disabled, local FTS search, Cases/Evidence/Reports work fully.
-
-## GUI
-
-Pages: Dashboard, Investigate (target input → live FOUND/NOT_FOUND/INCONCLUSIVE/RATE_LIMITED/BLOCKED), Cases, Evidence (filter by status/confidence), Entities (graph), Providers (toggle), Database (status/import), Reports (JSON/CSV/Markdown), Settings. GUI never implements OSINT directly — all via `App.*` Wails bindings.
-
-## Adding a Provider
-
-Create `internal/providers/<type>/myprov.go` implementing `registry.Provider` (`ID()`, `Name()`, `TargetTypes()`, `Check(ctx, target)`) and register in `internal/providers/registry.go`. No GUI change needed. See `ATTRIBUTION.md` for reference projects.
-
-## Testing & Quality
-
-```bash
-go test ./...              # unit: target, registry, discovery isolation, ssrf, import
+go test ./... -race      # matcher-independent core: discovery isolation, ssrf, import
 go vet ./...
-cd frontend && npm run build && npx tsc --noEmit
-go test ./internal/import -v
+npm run build            # typecheck + production build
 ```
 
-Provider failures are isolated — one `ERROR` does not abort investigation (`internal/core/discovery/engine_test.go` asserts this).
+CI (`.github/workflows/verify.yml`) additionally asserts that no dataset file and no
+credential is tracked in git.
 
-## Security & Responsible Use
+---
 
-- All external data untrusted; never executed. SSRF blocked (private IP ranges), parameterized SQL, `robots.txt` respected where applicable, rate-limited (1 req/s/host), bounded concurrency (5).
-- No auth/CAPTCHA/paywall bypass. Use only with authorization/consent.
-- Secrets via env (`.env` gitignored). See `.env.example`.
+## Responsible use
 
-## Legacy Next.js
-
-`app/` (Next.js 13 + Supabase) is deprecated but kept for one release. Supabase anon key leak removed — now requires `NEXT_PUBLIC_SUPABASE_*` env. See `TRD.md` §13.
+This tool aggregates personal data about identifiable people. Use it only for
+infrastructure you own or have written authorisation to assess. High-risk identifiers are
+masked by default for a reason. Do not redistribute the workbooks or the generated
+`data/*.json`.
 
 ## License & Attribution
 
-See `ATTRIBUTION.md` — holehe, user-scanner, toutatis, Mr.Holmes, OnionSearch inspirations. Respect their licenses.
+Inspiration and licensing notes in `ATTRIBUTION.md` (holehe, user-scanner, toutatis,
+Mr.Holmes, OnionSearch).
