@@ -100,7 +100,7 @@ into the browser JavaScript.
 **Privacy behaviour**
 
 - Aadhaar, passport, bank, IFSC and family income are **masked by default**
-  (`644106635909` → `**********09`)
+  (all but the last two characters are replaced)
 - Unmasking requires a request from `localhost`; a public host gets `reveal_blocked`
 - Every unmask is appended to `data/reveal-audit.log`
 - `.githooks/pre-commit` blocks workbooks, `data/*.json`, record dumps >200 KB and
