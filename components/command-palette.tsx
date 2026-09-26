@@ -11,6 +11,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import RecordAvatar from "@/components/record-avatar";
 
 type Hit = {
   SRNO?: unknown;
@@ -18,6 +19,7 @@ type Hit = {
   FIRSTNAME?: unknown;
   "LAST NAME"?: unknown;
   ROLLNO?: unknown;
+  REGISTRATION_NO?: unknown;
   "PROGRAMME/BRANCH"?: unknown;
   _filled?: number;
   _match?: { kind: string; via: string; score: number } | null;
@@ -103,6 +105,11 @@ export function CommandPalette() {
                     onSelect={() => go(h)}
                     className="gap-3"
                   >
+                    <RecordAvatar
+                      identity={String(h.REGISTRATION_NO ?? h.ROLLNO ?? h.SRNO ?? name)}
+                      name={name}
+                      size={24}
+                    />
                     <span className="font-medium">{name}</span>
                     <span className="text-xs text-slate-400 font-mono">{String(h.ROLLNO ?? "")}</span>
                     {h["PROGRAMME/BRANCH"] ? (

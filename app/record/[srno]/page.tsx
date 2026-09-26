@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentRecord from "@/components/student-record";
+import RecordAvatar from "@/components/record-avatar";
 import { useToast } from "@/components/ui/use-toast";
 
 type Rec = Record<string, unknown>;
@@ -88,12 +89,23 @@ export default function RecordPage() {
         {loading ? (
           <Skeleton className="h-7 w-56" />
         ) : (
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-semibold tracking-tight">{name || `Record ${srno}`}</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {filledText}
-              {matchText}
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <RecordAvatar
+              identity={String(
+                rec?.REGISTRATION_NO ?? rec?.ROLLNO ?? rec?.SRNO ?? srno ?? "",
+              )}
+              name={name}
+              size={44}
+            />
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-semibold tracking-tight">
+                {name || `Record ${srno}`}
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {filledText}
+                {matchText}
+              </p>
+            </div>
           </div>
         )}
         {rec && (

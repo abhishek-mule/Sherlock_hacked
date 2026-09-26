@@ -6,6 +6,7 @@ import { ArrowRight, Database, Loader2, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import RecordAvatar from "@/components/record-avatar";
 import { useToast } from "@/components/ui/use-toast";
 
 type Hit = {
@@ -14,6 +15,7 @@ type Hit = {
   FIRSTNAME?: unknown;
   "LAST NAME"?: unknown;
   ROLLNO?: unknown;
+  REGISTRATION_NO?: unknown;
   "PROGRAMME/BRANCH"?: unknown;
   "CITY/VILLAGE(PERMANENT)"?: unknown;
   GENDER?: unknown;
@@ -196,9 +198,11 @@ export default function SearchPage() {
               onClick={() => open(h)}
               className="group flex w-full items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-left transition hover:border-teal-400 hover:shadow-sm"
             >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 text-sm font-semibold text-white">
-                {(String(h.FIRSTNAME ?? name)[0] ?? "?").toUpperCase()}
-              </span>
+              <RecordAvatar
+                identity={String(h.REGISTRATION_NO ?? h.ROLLNO ?? h.SRNO ?? name)}
+                name={name}
+                size={40}
+              />
 
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
