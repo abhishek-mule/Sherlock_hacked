@@ -23,10 +23,13 @@ if [ -n "$FORBIDDEN" ]; then
 fi
 
 # 1b. Any other JSON large enough to be a record dump.
-BIGJSON=$(printf '%s\n' "$STAGED" | grep -E '\.json$' | while read -r f; do
-  [ -f "$f" ] || continue
-  if [ "$(wc -c <"$f")" -gt 200000 ]; then echo "$f"; fi
-done || true)
+# Lockfiles are legitimately large and are not record data.
+BIGJSON=$(printf '%s\n' "$STAGED" | grep -E '\.json$' \
+  | grep -vE '(^|/)(package-lock\.json|composer\.lock)$' \
+  | while read -r f; do
+    [ -f "$f" ] || continue
+    if [ "$(wc -c <"$f")" -gt 200000 ]; then echo "$f"; fi
+  done || true)
 if [ -n "$BIGJSON" ]; then
   echo "BLOCKED: large JSON that may be a record dump:" >&2
   printf '  %s\n' $BIGJSON >&2
