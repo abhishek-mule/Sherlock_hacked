@@ -104,6 +104,16 @@ export async function GET(req: Request) {
 
   const fieldCount = Object.keys(rows[0]).filter((k) => !k.startsWith("_")).length;
 
+  // Dataset-level coverage: which columns are empty for *every* record. This is
+  // different from "empty for this person" and the UI should say so rather than
+  // letting an analyst assume a column is merely unpopulated.
+  let emptyEverywhere: string[] = [];
+  if (url.searchParams.get("coverage") === "1") {
+    emptyEverywhere = Object.keys(rows[0])
+      .filter((k) => !k.startsWith("_"))
+      .filter((k) => rows.every((r) => r[k] === "" || r[k] == null));
+  }
+
   if (revealRequested && !reveal) {
     return Response.json(
       { ok: false, reason: "reveal_blocked", hint: "High-risk fields can only be revealed from a local machine." },
@@ -160,6 +170,7 @@ export async function GET(req: Request) {
     fields_per_record: fieldCount,
     redacted: !reveal,
     high_risk_fields: HIGH_RISK,
+    empty_in_every_record: emptyEverywhere,
     suggestions: suggestionsOut,
     results: shaped,
   });

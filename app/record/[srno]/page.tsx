@@ -30,9 +30,18 @@ export default function RecordPage() {
   const { srno } = useParams<{ srno: string }>();
   const [rec, setRec] = useState<Rec | null>(null);
   const [redacted, setRedacted] = useState(true);
+  const [emptyEverywhere, setEmptyEverywhere] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+
+  // Which columns are empty across the whole dataset, not just this record.
+  useEffect(() => {
+    fetch("/api/students?limit=1&coverage=1")
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d?.empty_in_every_record) && setEmptyEverywhere(d.empty_in_every_record))
+      .catch(() => {});
+  }, []);
 
   const load = async (reveal = false) => {
     setLoading(true);
@@ -132,6 +141,27 @@ export default function RecordPage() {
               redacted={redacted}
               onReveal={() => load(true)}
             />
+            {emptyEverywhere.length > 0 && (
+              <details className="mt-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <summary className="cursor-pointer px-4 py-2.5 text-sm font-medium">
+                  {emptyEverywhere.length} columns are empty in every record
+                </summary>
+                <p className="px-4 pb-2 text-xs text-slate-500 dark:text-slate-400">
+                  These columns exist in the source workbook but contain no value for any of the
+                  124 records. They are not dropped by this tool.
+                </p>
+                <ul className="flex flex-wrap gap-1.5 px-4 pb-4">
+                  {emptyEverywhere.map((c) => (
+                    <li
+                      key={c}
+                      className="rounded border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-500 dark:border-slate-700"
+                    >
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </TabsContent>
 
           <TabsContent value="sources" className="mt-4 space-y-3">
