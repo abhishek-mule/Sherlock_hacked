@@ -69,9 +69,20 @@ function countFilled(row: Row): number {
   return filledCount(row);
 }
 
+/** Compare identifier-ish values tolerating "7" vs "7.0" vs " 7 ". */
+function normKey(v: unknown): string {
+  const s = String(v ?? "").trim();
+  if (s === "") return "";
+  const n = Number(s);
+  return Number.isFinite(n) ? String(n) : s.toLowerCase();
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+  // Primary-key lookup. The record view routes on SRNO, so a record fetch must
+  // be an exact match and must never depend on the fuzzy search ranker.
+  const srno = (url.searchParams.get("srno") ?? "").trim();
   const limit = Math.min(Number(url.searchParams.get("limit") ?? "25") || 25, 200);
   const wantFull = url.searchParams.get("fields") === "all";
   const revealRequested = url.searchParams.get("reveal") === "1";
@@ -103,7 +114,11 @@ export async function GET(req: Request) {
   let out: Row[];
   let matches: { kind: string; via: string; score: number }[] = [];
   let suggestionsOut: { srno: unknown; name: string; hint: string }[] = [];
-  if (q) {
+
+  if (srno) {
+    const wanted = String(Number(srno)) === srno ? Number(srno) : srno;
+    out = rows.filter((r) => normKey(r.SRNO) === normKey(wanted)).slice(0, 1);
+  } else if (q) {
     const ranked = rank(rows, q, limit);
     out = ranked.map((r) => r.row);
     matches = ranked.map((r) => ({ kind: r.kind, via: r.via, score: Math.round(r.score) }));

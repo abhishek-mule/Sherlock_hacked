@@ -37,7 +37,9 @@ export default function RecordPage() {
   const load = async (reveal = false) => {
     setLoading(true);
     try {
-      const url = `/api/students?q=${encodeURIComponent(String(srno ?? ""))}&limit=1&fields=all${
+      // Primary-key lookup, not a search — the record view must not depend on
+      // fuzzy ranking to resolve a record it already knows the id of.
+      const url = `/api/students?srno=${encodeURIComponent(String(srno ?? ""))}&limit=1&fields=all${
         reveal ? "&reveal=1" : ""
       }`;
       const res = await fetch(url);

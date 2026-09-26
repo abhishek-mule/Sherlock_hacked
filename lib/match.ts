@@ -26,6 +26,10 @@ const ID_FIELDS = [
   "ABC ID NUMBER",
   "College ERP No.",
   "University Enrollment No.",
+  // Dataset row number. Lowest-confidence identifier (it is a 1-based index,
+  // so a bare number is ambiguous), but it is the primary key the record view
+  // routes on, so it must be reachable.
+  "SRNO",
 ] as const;
 
 const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
