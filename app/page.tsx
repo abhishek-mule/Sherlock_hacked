@@ -17,8 +17,8 @@ import { signOut } from '@/lib/session';
 import { toast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AllStudentInfo } from '@/components/all-student-info';
-// Local-first data from backup (sanitized) — Supabase removed
-import studentsEnriched from '@/fixtures/synthetic/students-enriched.json';
+// Local-first unified store (both XLSX sanitized) — Supabase removed
+import unifiedSanitized from '@/fixtures/synthetic/unified-sanitized.json';
 import admissionsEnriched from '@/fixtures/synthetic/admissions-enriched.json';
 import osintEnriched from '@/fixtures/synthetic/osint-enriched.json';
 
@@ -45,8 +45,8 @@ export default function Home() {
     router.push('/login');
   }, [router]);
 
-  // Local-first store — backup sanitized, Supabase removed
-  const LOCAL_STUDENTS = studentsEnriched as any[];
+  // Unified local store — merged db_cluster_data.xlsx (125) + MASTER DATABASE 7BT (72) — sanitized
+  const LOCAL_STUDENTS = unifiedSanitized as any[];
   const LOCAL_ADMISSIONS = admissionsEnriched as any[];
   const LOCAL_OSINT = osintEnriched as any[];
 
@@ -65,17 +65,18 @@ export default function Home() {
       // Precise local search — no Supabase
       {
         const term = name.toLowerCase().trim();
+        const get = (r: any, k: string) => r[k] ?? r[k.toLowerCase()] ?? r[k.replace(/ /g, '_')] ?? '';
         const base = (() => {
-          const hasPorus = LOCAL_STUDENTS.some((r: any) => `${r.FIRSTNAME}`.toLowerCase().includes('porus'));
+          const hasPorus = LOCAL_STUDENTS.some((r: any) => `${get(r,'FIRSTNAME')}`.toLowerCase().includes('porus'));
           if (!hasPorus && term.includes('porus')) {
-            return [...LOCAL_STUDENTS, { SRNO: 'DEMO_PORUS', NAME: 'Porus Demo', FIRSTNAME: 'Porus', 'LAST NAME': 'Demo', ROLLNO: 'DEMO001', REGISTRATION_NO: 'DEMO001', 'PROGRAMME/BRANCH': 'OSINT', CITY: 'Pune', GENDER: 'MALE', CATEGORY: 'OPEN' }];
+            return [...LOCAL_STUDENTS, { srno: 'DEMO_PORUS', name: 'Porus Demo', firstname: 'Porus', lastname: 'Demo', rollno: 'DEMO001', registration_no: 'DEMO001', branch: 'OSINT', city: 'Pune', gender: 'MALE', category: 'OPEN' }];
           }
           return LOCAL_STUDENTS;
         })();
-        // Ranking: exact token match first, then substring
+        // Ranking: exact token match first, then substring — uses unified sanitized + legacy keys
         let scored = base.map(r => {
-          const hay = `${r.NAME} ${r.FIRSTNAME} ${r['LAST NAME']} ${r.ROLLNO} ${r.REGISTRATION_NO} ${r['PROGRAMME/BRANCH'] || ''} ${r.CITY || ''}`.toLowerCase();
-          const exact = hay.split(/\s+/).includes(term) || String(r.ROLLNO).toLowerCase() === term || String(r.REGISTRATION_NO).toLowerCase() === term;
+          const hay = `${get(r,'NAME') || get(r,'name')} ${get(r,'FIRSTNAME') || get(r,'firstname')} ${get(r,'LAST NAME') || get(r,'lastname')} ${get(r,'ROLLNO') || get(r,'rollno')} ${get(r,'REGISTRATION_NO') || get(r,'registration_no')} ${get(r,'PROGRAMME/BRANCH') || get(r,'branch') || ''} ${get(r,'CITY') || get(r,'city') || ''}`.toLowerCase();
+          const exact = hay.split(/\s+/).includes(term) || String(get(r,'ROLLNO') || get(r,'rollno')).toLowerCase() === term || String(get(r,'REGISTRATION_NO') || get(r,'registration_no')).toLowerCase() === term;
           const includes = hay.includes(term);
           return { r, score: exact ? 2 : includes ? 1 : 0 };
         }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).map(x => x.r);
@@ -86,9 +87,10 @@ export default function Home() {
         } else if (data.length > 50) {
           data = data.slice(0, 50);
         }
-        // Enrich with OSINT/admission from backup where available
+        // Enrich with OSINT/admission from backup where available — handles unified (lowercase) + legacy
         const enrich = (s: any) => {
-          const key = `${s.FIRSTNAME} ${s['LAST NAME']}`.toLowerCase().trim();
+          const get = (o: any, k: string) => o[k] ?? o[k.toLowerCase()] ?? '';
+          const key = `${get(s,'FIRSTNAME') || get(s,'firstname')} ${get(s,'LAST NAME') || get(s,'lastname')}`.toLowerCase().trim();
           const os = LOCAL_OSINT.find((o: any) => o.student_name.toLowerCase().includes(key) || key.includes(o.student_name.toLowerCase().split(' ')[0] || ''));
           const ad = LOCAL_ADMISSIONS.find((a: any) => a.full_name.toLowerCase().includes(key));
           return { ...s, _osint: os || null, _admission: ad || null };
@@ -96,46 +98,47 @@ export default function Home() {
         data = data.map(enrich);
         // fall through to mapping below
         let mappedResults = (data || []).map(student => {
-          const fullName = student.NAME || '';
-          const firstName = student.FIRSTNAME || '';
-          const lastName = student['LAST NAME'] || '';
+          const getS = (k: string) => student[k] ?? student[k.toLowerCase()] ?? student[k.replace(/ /g,'_')] ?? '';
+          const fullName = getS('NAME') || getS('name') || '';
+          const firstName = getS('FIRSTNAME') || getS('firstname') || '';
+          const lastName = getS('LAST NAME') || getS('lastname') || '';
           return {
-            id: String(student.SRNO || ''),
+            id: String(getS('SRNO') || getS('srno') || ''),
             name: firstName || fullName.split(' ')[0] || '',
             surname: lastName || (fullName.includes(' ') ? fullName.split(' ').slice(1).join(' ') : ''),
-            email: student.EMAILID || '',
-            father_name: student.FATHERNAME || '',
-            occupation: student["FATHER'S OCCUPATION"] || '',
-            category: student.CATEGORY || '',
-            religion: student.RELIGION || '',
-            subcast: student.SUB_CASTE || '',
-            rollno: String(student.ROLLNO || ''),
-            registrationNo: String(student.REGISTRATION_NO || ''),
-            enrollmentNumber: student["ENROLLMENT NUMBER"] || '',
-            admissionType: student["ADMISSION TYPE"] || '',
-            mobileNo: student["MOBILE NO."] || '',
-            dob: student.DOB || '',
-            gender: student.GENDER || '',
-            nationality: student.NATIONALITY || '',
-            bloodGroup: student["BLOOD GROUP"] || '',
-            maritalStatus: student["MARITAL STATUS"] || '',
-            socialCategory: student["SOCIAL CATEGORY"] || '',
-            adhaarNo: student["ADHAAR NO"] || '',
-            motherName: student.MOTHERNAME || '',
-            motherOccupation: student["MOTHER'S OCCUPATION"] || '',
-            annualFamilyIncome: student["ANNUAL FAMILY INCOME"] || '',
-            image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(student.SRNO) || (Math.abs((student.NAME||'').length) || 1)),
+            email: getS('EMAILID') || '',
+            father_name: getS('FATHERNAME') || '',
+            occupation: getS("FATHER'S OCCUPATION") || '',
+            category: getS('CATEGORY') || getS('category') || '',
+            religion: getS('RELIGION') || '',
+            subcast: getS('SUB_CASTE') || '',
+            rollno: String(getS('ROLLNO') || getS('rollno') || ''),
+            registrationNo: String(getS('REGISTRATION_NO') || getS('registration_no') || ''),
+            enrollmentNumber: getS("ENROLLMENT NUMBER") || '',
+            admissionType: getS("ADMISSION TYPE") || '',
+            mobileNo: getS("MOBILE NO.") || '',
+            dob: getS('DOB') || '',
+            gender: getS('GENDER') || getS('gender') || '',
+            nationality: getS('NATIONALITY') || '',
+            bloodGroup: getS("BLOOD GROUP") || '',
+            maritalStatus: getS("MARITAL STATUS") || '',
+            socialCategory: getS("SOCIAL CATEGORY") || '',
+            adhaarNo: getS("ADHAAR NO") || '',
+            motherName: getS('MOTHERNAME') || '',
+            motherOccupation: getS("MOTHER'S OCCUPATION") || '',
+            annualFamilyIncome: getS("ANNUAL FAMILY INCOME") || '',
+            image_url: 'https://i.pravatar.cc/150?img=' + (parseInt(getS('SRNO') || getS('srno')) || (Math.abs((fullName||'').length) || 1)),
             github_url: student._osint?.github || '',
             twitter_url: '', linkedin_url: '', instagram_url: '',
-            // enriched from backup (non-PII)
+            // enriched from backup (non-PII) — handles unified lower + legacy upper
             // @ts-ignore
-            branch: student['PROGRAMME/BRANCH'] || student._admission?.branch || '',
+            branch: getS('PROGRAMME/BRANCH') || getS('branch') || student._admission?.branch || '',
             // @ts-ignore
-            city: student.CITY || student._admission?.city || '',
+            city: getS('CITY') || getS('city') || student._admission?.city || '',
             // @ts-ignore
             skills: student._osint?.skills || '',
             // @ts-ignore
-            location: student._osint?.location || student.CITY || ''
+            location: student._osint?.location || getS('CITY') || getS('city') || ''
           };
         });
         setSearchResults(mappedResults);

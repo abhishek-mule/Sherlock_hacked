@@ -40,8 +40,10 @@ next-env.d.ts
 *.db
 *.sqlite
 *.sqlite3
+*.xlsx
 data/sherlock.db
 data/*.db
+data/unified-full.json
 .env
 .env.local
 .env.*.local
