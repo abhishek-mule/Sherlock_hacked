@@ -34,9 +34,19 @@ if [ -n "$BIGJSON" ]; then
 fi
 
 # 2. Never stage secrets.
-if printf '%s\n' "$STAGED" | xargs -r grep -lE 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|eyJhbGciOi[A-Za-z0-9_-]{20,}' 2>/dev/null | grep -q .; then
+# Patterns are assembled from fragments so this file cannot match itself and
+# no filename allowlist is needed.
+PEM="BEGIN ""(RSA |EC |OPENSSH )?PRIVATE KEY"
+AWS="AK""IA[0-9A-Z]{16}"
+GHT="gh[pous""r]_[A-Za-z0-9]{30,}"
+ANON="eyJhbGci""Oi[A-Za-z0-9_-]{20,}"
+SECRET_RE="$PEM|$AWS|$GHT|$ANON"
+
+HITS=$(printf '%s\n' "$STAGED" | xargs -r grep -lIE "$SECRET_RE" 2>/dev/null || true)
+if [ -n "$HITS" ]; then
   echo "BLOCKED: credential-shaped string in staged files:" >&2
-  printf '%s\n' "$STAGED" | xargs -r grep -lE 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|eyJhbGciOi[A-Za-z0-9_-]{20,}' 2>/dev/null >&2
+  printf '  %s\n' $HITS >&2
+  printf '%s\n' $HITS | xargs -r grep -nIE "$SECRET_RE" 2>/dev/null | cut -c1-160 >&2
   fail=1
 fi
 

@@ -33,7 +33,14 @@ jobs:
       - name: Guard against secrets
         run: |
           set -euo pipefail
-          if git grep -nIE 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}' -- . ; then
+          # Assemble patterns from fragments so this workflow cannot match
+          # its own source, and so no filename allowlist is required.
+          PEM="BEGIN ""(RSA |EC |OPENSSH )?PRIVATE KEY"
+          AWS="AK""IA[0-9A-Z]{16}"
+          GHT="gh[pous""r]_[A-Za-z0-9]{30,}"
+          ANON="eyJhbGci""Oi[A-Za-z0-9_-]{20,}"
+          RE="$PEM|$AWS|$GHT|$ANON"
+          if git grep -nIE "$RE" -- . ; then
             echo "::error::credential-shaped string committed"
             exit 1
           fi

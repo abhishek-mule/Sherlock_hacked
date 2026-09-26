@@ -288,7 +288,7 @@ internal/providers/
 
 - **SSRF:** `internal/security/ssrf.go` blocks `10/8, 172.16/12, 192.168/16, 127/8, ::1, fc00::/7, link-local`; `url.Parse` + `net.LookupIP` double-check; redirects followed only to public IPs (max 3).
 - **Injection:** Parameterized SQL only (`database/sql` + `?`); no `fmt.Sprintf` queries; `html/template` auto-escape; no `exec` of external content.
-- **Secrets:** `internal/config` reads `DATABASE_URL`, `TOR_PROXY` from env; `.env` gitignored; pre-commit `scripts/check-secrets.sh` greps for `BEGIN PRIVATE KEY|sk-` + leaked Supabase anon key pattern.
+- **Secrets:** `internal/config` reads `DATABASE_URL`, `TOR_PROXY` from env; `.env` gitignored; pre-commit `.githooks/pre-commit` (`scripts/pre-commit-guard.sh`) blocks PEM blocks, AWS keys, GitHub tokens and any staged local-dataset file. Both the hook and CI assemble their patterns from string fragments so the scanners cannot match their own source, and CI re-runs the same check over the tree.
 - **Deserialization:** `encoding/json` strict; max body 512KB; reject non-UTF8.
 - **File writes:** `filepath.Clean` + `filepath.Join(dataDir)` only; no traversal.
 - **Logging:** `slog` JSON, no PII at INFO; DEBUG only with `--debug` and local.

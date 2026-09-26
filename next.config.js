@@ -9,17 +9,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  images: { 
-    domains: ['thpajmudzyytnpcbzbru.supabase.co'],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'thpajmudzyytnpcbzbru.supabase.co',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
+  // No remote image hosts. The project is local-first; all record data is read
+  // from data/*.json at runtime via /api/students, never from a hosted backend.
 };
 
 module.exports = nextConfig;
