@@ -43,7 +43,9 @@ next-env.d.ts
 *.xlsx
 data/sherlock.db
 data/*.db
-data/unified-full.json
+data/*.json
+data/*.log
+!data/.gitkeep
 .env
 .env.local
 .env.*.local
