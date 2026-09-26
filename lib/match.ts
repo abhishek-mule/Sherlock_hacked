@@ -187,3 +187,78 @@ export function explain(s: Scored): string {
       return "";
   }
 }
+
+export interface Suggestion {
+  srno: unknown;
+  name: string;
+  hint: string;
+}
+
+/**
+ * Near-miss candidates for a query that returned nothing.
+ *
+ * A short or slightly-wrong query should never dead-end in "No match". This
+ * ranks by prefix containment first (cheapest and most useful: "ab" -> Abha,
+ * Aditya) then by loose similarity, and drops the match gate so partial input
+ * still produces something actionable. Deduplicated by name so a common name
+ * does not fill the whole list.
+ */
+export function suggestions(rows: Row[], query: string, n = 6): Suggestion[] {
+  const qs = squash(norm(query));
+  if (qs.length < 1) return [];
+
+  const best = new Map<string, { row: Row; score: number; hint: string }>();
+
+  for (const row of rows) {
+    const parts = nameParts(row);
+    const full = parts.join(" ");
+    const display = norm(row.NAME) || full;
+    if (!display) continue;
+
+    let score = 0;
+    let hint = "";
+
+    for (const part of parts) {
+      if (part === qs) {
+        score = 100;
+        hint = "exact name part";
+        break;
+      }
+      if (part.startsWith(qs)) {
+        const s = 80 + (qs.length / Math.max(part.length, 1)) * 10;
+        if (s > score) {
+          score = s;
+          hint = `starts with "${query.trim().toLowerCase()}"`;
+        }
+        continue;
+      }
+      if (part.includes(qs)) {
+        const s = 70 + (qs.length / Math.max(part.length, 1)) * 5;
+        if (s > score) {
+          score = s;
+          hint = `contains "${query.trim().toLowerCase()}"`;
+        }
+        continue;
+      }
+      const sim = jaroWinkler(part, qs);
+      if (sim > 0.72 && sim * 60 > score) {
+        score = sim * 60;
+        hint = "similar spelling";
+      }
+    }
+
+    if (score <= 0) continue;
+    const key = display.toLowerCase();
+    const cur = best.get(key);
+    if (!cur || cur.score < score) best.set(key, { row, score, hint });
+  }
+
+  return Array.from(best.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, n)
+    .map((s) => ({
+      srno: s.row.SRNO,
+      name: norm(s.row.FIRSTNAME) ? `${norm(s.row.FIRSTNAME)} ${norm(s.row["LAST NAME"])}`.trim() : norm(s.row.NAME),
+      hint: s.hint,
+    }));
+}

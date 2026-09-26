@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { rank, filledCount } from "@/lib/match";
+import { rank, suggestions, filledCount } from "@/lib/match";
 
 /**
  * Local-only student record API.
@@ -102,10 +102,15 @@ export async function GET(req: Request) {
 
   let out: Row[];
   let matches: { kind: string; via: string; score: number }[] = [];
+  let suggestionsOut: { srno: unknown; name: string; hint: string }[] = [];
   if (q) {
     const ranked = rank(rows, q, limit);
     out = ranked.map((r) => r.row);
     matches = ranked.map((r) => ({ kind: r.kind, via: r.via, score: Math.round(r.score) }));
+    if (out.length === 0) {
+      // Never leave the caller with a dead end: offer near misses.
+      suggestionsOut = suggestions(rows, q, 6);
+    }
   } else {
     out = rows
       .slice()
@@ -140,6 +145,7 @@ export async function GET(req: Request) {
     fields_per_record: fieldCount,
     redacted: !reveal,
     high_risk_fields: HIGH_RISK,
+    suggestions: suggestionsOut,
     results: shaped,
   });
 }

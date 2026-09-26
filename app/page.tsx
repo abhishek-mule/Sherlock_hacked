@@ -23,6 +23,11 @@ type Hit = {
   _sources?: Record<string, unknown>;
 };
 
+type Suggestion = { srno: unknown; name: string; hint: string };
+
+/** Below this length a query is too short to judge, so never claim "no match". */
+const MIN_QUERY = 3;
+
 const KIND: Record<string, { label: string; cls: string }> = {
   id: { label: "ID match", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
   exact: { label: "Exact", cls: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" },
@@ -33,6 +38,7 @@ const KIND: Record<string, { label: string; cls: string }> = {
 export default function SearchPage() {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
+  const [sugs, setSugs] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [meta, setMeta] = useState<{ total: number; fields: number } | null>(null);
@@ -54,8 +60,9 @@ export default function SearchPage() {
 
   useEffect(() => {
     const term = q.trim();
-    if (term.length < 2) {
+    if (term.length < MIN_QUERY) {
       setHits([]);
+      setSugs([]);
       setSearched(false);
       return;
     }
@@ -70,6 +77,7 @@ export default function SearchPage() {
           return;
         }
         setHits(data.results as Hit[]);
+        setSugs((data.suggestions ?? []) as Suggestion[]);
         setSearched(true);
       } catch {
         toast({ title: "Search failed", description: "Local dataset unreadable", variant: "destructive" });
@@ -80,7 +88,9 @@ export default function SearchPage() {
     return () => clearTimeout(t);
   }, [q, toast]);
 
-  const open = (h: Hit) => router.push(`/record/${encodeURIComponent(String(h.SRNO ?? ""))}`);
+  const open = (h: Hit | Suggestion) =>
+    router.push(`/record/${encodeURIComponent(String((h as Hit).SRNO ?? (h as Suggestion).srno ?? ""))}`);
+  const tooShort = q.trim().length > 0 && q.trim().length < MIN_QUERY;
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && hits.length > 0) open(hits[0]);
@@ -136,14 +146,44 @@ export default function SearchPage() {
           [0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
 
         {!loading && searched && hits.length === 0 && (
-          <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-10 text-center">
-            <Database className="mx-auto h-6 w-6 text-slate-400" />
+          <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center">
+            <Search className="mx-auto h-5 w-5 text-slate-400" />
             <p className="mt-2 text-sm font-medium">No match for “{q.trim()}”</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Check the spelling, or search by roll / registration number. Identical names are
-              separated by record completeness.
-            </p>
+
+            {sugs.length > 0 ? (
+              <>
+                <p className="mt-1 text-xs text-slate-500">Did you mean</p>
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {sugs.map((s) => (
+                    <button
+                      key={String(s.srno)}
+                      onClick={() => open(s)}
+                      className="rounded-full border border-teal-300 dark:border-teal-700 px-3 py-1 text-xs hover:bg-teal-50 dark:hover:bg-teal-950/40"
+                    >
+                      {s.name}
+                      <span className="ml-1.5 text-[10px] text-slate-400">{s.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-xs text-slate-500">
+                Check the spelling, or search by roll / registration number.
+              </p>
+            )}
           </div>
+        )}
+
+        {tooShort && (
+          <p className="text-center text-xs text-slate-400">
+            Keep typing — {MIN_QUERY} characters or more to search.
+          </p>
+        )}
+
+        {sugs.length > 0 && hits.length > 0 && (
+          <p className="pt-1 text-center text-xs text-slate-400">
+            {hits.length} match{hits.length === 1 ? "" : "es"} for “{q.trim()}”
+          </p>
         )}
 
         {hits.map((h, i) => {
