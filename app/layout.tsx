@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { AppShell } from '@/components/app-shell'
 import { cn } from '@/lib/utils'
 import { Inter } from 'next/font/google'
 
@@ -9,8 +10,8 @@ import { Inter } from 'next/font/google'
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Sherlock - Student OSINT Finder',
-  description: 'Advanced student information discovery platform',
+  title: 'Sherlock Hacked — local record intelligence',
+  description: 'Local-first record search and correlation workspace',
 }
 
 const inter = Inter({
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#0f172a" />
@@ -35,20 +36,8 @@ export default function RootLayout({
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Toaster />
-          {children}
+          <AppShell>{children}</AppShell>
         </ThemeProvider>
-        {/* App height adjustment script for mobile */}
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            // Fix the 100vh issue on mobile browsers
-            const appHeight = () => {
-              const doc = document.documentElement;
-              doc.style.setProperty('--app-height', \`\${window.innerHeight}px\`);
-            };
-            window.addEventListener('resize', appHeight);
-            appHeight();
-          `
-        }} />
       </body>
     </html>
   )

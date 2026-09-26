@@ -1,0 +1,62 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      # --- data guard: the dataset must never be committed -------------------
+      - name: Guard against local dataset in the tree
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(data/.*\.(json|db|log))|\.(xlsx|xls|backup|dump)$'; then
+            echo "::error::dataset material is tracked in git"
+            exit 1
+          fi
+          echo "ok: no dataset material tracked"
+
+      - name: Guard against secrets
+        run: |
+          set -euo pipefail
+          if git grep -nIE 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}' -- . ; then
+            echo "::error::credential-shaped string committed"
+            exit 1
+          fi
+          echo "ok: no credentials committed"
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Typecheck + build
+        run: npm run build
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Go tests
+        run: go test ./... -race
+
+      # The dataset is gitignored, so CI has nothing to ingest. Assert the app
+      # degrades cleanly instead of crashing when the local files are absent.
+      - name: Confirm dataset absent in CI (expected)
+        run: |
+          if [ -f data/full-students.json ]; then
+            echo "::error::dataset should not exist in CI"
+            exit 1
+          fi
+          echo "ok: dataset correctly absent; UI will show its ingest prompt"

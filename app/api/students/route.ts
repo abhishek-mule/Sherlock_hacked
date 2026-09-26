@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { rank, filledCount } from "@/lib/match";
 
 /**
  * Local-only student record API.
@@ -64,27 +65,8 @@ function redact(row: Row, reveal: boolean): Row {
   return out;
 }
 
-function matchScore(row: Row, term: string): number {
-  const keys = ["NAME", "FIRSTNAME", "MIDDLE NAME", "LAST NAME", "ROLLNO", "REGISTRATION_NO", "ENROLLMENT NUMBER", "PROGRAMME/BRANCH", "CITY/VILLAGE(PERMANENT)", "EMAILID"];
-  const norm = (v: unknown) => String(v ?? "").toLowerCase();
-  let best = 0;
-  for (const k of keys) {
-    const v = norm(row[k]);
-    if (!v) continue;
-    if (v === term) return 3;
-    if (v.split(/\s+/).includes(term)) best = Math.max(best, 2);
-    else if (v.includes(term)) best = Math.max(best, 1);
-  }
-  return best;
-}
-
 function countFilled(row: Row): number {
-  let n = 0;
-  for (const [k, v] of Object.entries(row)) {
-    if (k.startsWith("_")) continue;
-    if (v !== "" && v != null) n += 1;
-  }
-  return n;
+  return filledCount(row);
 }
 
 export async function GET(req: Request) {
@@ -119,15 +101,16 @@ export async function GET(req: Request) {
   }
 
   let out: Row[];
+  let matches: { kind: string; via: string; score: number }[] = [];
   if (q) {
-    out = rows
-      .map((r) => ({ r, s: matchScore(r, q) }))
-      .filter((x) => x.s > 0)
-      .sort((a, b) => b.s - a.s || countFilled(b.r) - countFilled(a.r))
-      .map((x) => x.r)
-      .slice(0, limit);
+    const ranked = rank(rows, q, limit);
+    out = ranked.map((r) => r.row);
+    matches = ranked.map((r) => ({ kind: r.kind, via: r.via, score: Math.round(r.score) }));
   } else {
-    out = rows.slice(0, limit);
+    out = rows
+      .slice()
+      .sort((a, b) => countFilled(b) - countFilled(a))
+      .slice(0, limit);
   }
 
   if (reveal) {
@@ -142,7 +125,12 @@ export async function GET(req: Request) {
       .catch(() => {});
   }
 
-  const shaped = out.map((r) => (wantFull ? redact(r, reveal) : pickSummary(r, reveal)));
+  const shaped = out.map((r, i) => {
+    const base = wantFull ? redact(r, reveal) : pickSummary(r, reveal);
+    base._match = matches[i] ?? null;
+    base._filled = countFilled(r);
+    return base;
+  });
 
   return Response.json({
     ok: true,
