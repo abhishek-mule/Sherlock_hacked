@@ -1,6 +1,8 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { cookies } from "next/headers";
 import { rank, suggestions, filledCount } from "@/lib/match";
+import { COOKIE_NAME, isConfigured, verifySession } from "@/lib/auth";
 
 /**
  * Local-only student record API.
@@ -46,11 +48,27 @@ async function loadRows(): Promise<Row[]> {
   }
 }
 
+/**
+ * Decide whether a request originated from this machine.
+ *
+ * `x-forwarded-for` is authoritative when present — a proxy sets it and its
+ * first entry is the client. When it is absent there is no client IP at all,
+ * which must NOT be read as "local": otherwise any device that can reach the
+ * dev server over the LAN would pass the check. Fall back to the Host header
+ * and require an explicit loopback name.
+ */
 function isLocalRequest(req: Request): boolean {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
-  const host = req.headers.get("host") ?? "";
-  if (["127.0.0.1", "::1", ""].includes(ip)) return true;
-  return /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd !== null) {
+    const ip = fwd.split(",")[0]?.trim() ?? "";
+    if (ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1") return true;
+    // A forwarded request from anywhere else is not local, even if the Host
+    // header happens to name loopback (which is the case behind a local proxy).
+    return false;
+  }
+  const host = (req.headers.get("host") ?? "").toLowerCase();
+  const hostname = host.replace(/:\d+$/, "").replace(/^\[|\]$/g, "");
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
 function redact(row: Row, reveal: boolean): Row {
@@ -78,6 +96,18 @@ function normKey(v: unknown): string {
 }
 
 export async function GET(req: Request) {
+  // Gate the dataset itself, not just the pages. A client-side redirect would
+  // leave the JSON readable by anyone who skipped the UI.
+  if (!isConfigured()) {
+    return Response.json(
+      { ok: false, reason: "not_configured", hint: "Run: npm run auth:setup" },
+      { status: 503 },
+    );
+  }
+  if (!verifySession(cookies().get(COOKIE_NAME)?.value)) {
+    return Response.json({ ok: false, reason: "unauthenticated" }, { status: 401 });
+  }
+
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
   // Primary-key lookup. The record view routes on SRNO, so a record fetch must

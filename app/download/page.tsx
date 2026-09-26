@@ -30,7 +30,7 @@ export default function DownloadPage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="text-center py-6">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Download Sherlock</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">Use demo login <code className="bg-white dark:bg-slate-700 px-2 py-1 rounded">porus</code> / <code className="bg-white dark:bg-slate-700 px-2 py-1 rounded">porus</code></p>
+
         </div>
 
         <Card className="p-6 border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/20">
@@ -66,7 +66,7 @@ export default function DownloadPage() {
               </div>
               <div className="mt-4 text-xs text-slate-500 dark:text-slate-400 space-y-1">
                 <p>1. Tap Download → Open file → Allow `Install unknown apps` → Install</p>
-                <p>2. Demo login: <code>porus</code> / <code>porus</code></p>
+                <p>2. Sign in with the operator account you configured</p>
                 <p className="flex items-center gap-1"><Shield className="h-3 w-3" /> APK is signed TWA; for Play Store publish, upload the `.aab` instead.</p>
               </div>
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">APK not yet built? Run <code>./scripts/build-apk.sh</code> (see twa/) or check Releases.</p>

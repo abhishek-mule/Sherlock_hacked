@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Database, Download, FileSearch, LogOut, Moon, Network, ShieldCheck, Sun } from "lucide-react";
+import { Database, Download, FileSearch, LogOut, Moon, Network, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { signOut } from "@/lib/session";
+import { AuthProvider, useAuth } from "@/components/auth";
 import { CommandPalette } from "@/components/command-palette";
 import { ClientOnly } from "@/components/client-only";
 import { cn } from "@/lib/utils";
@@ -16,13 +16,16 @@ const NAV = [
   { href: "/download", label: "Download", icon: Download },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { signOut } = useAuth();
   const [ds, setDs] = useState<{ total: number; fields: number; ok: boolean } | null>(null);
 
+  const { authenticated } = useAuth();
+
   useEffect(() => {
+    if (!authenticated) return;
     let alive = true;
     fetch("/api/students?limit=1")
       .then((r) => r.json())
@@ -31,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [authenticated]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
@@ -92,9 +95,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
 
             <button
-              onClick={async () => {
-                await signOut();
-                router.push("/login");
+              onClick={() => {
+                void signOut();
               }}
               className="h-8 w-8 grid place-items-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
               aria-label="Sign out"
@@ -109,13 +111,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <footer className="border-t border-slate-200 dark:border-slate-800 py-4">
         <div className="mx-auto max-w-7xl px-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
-          <span className="inline-flex items-center gap-1">
-            <ShieldCheck className="h-3 w-3" />
-            Local-first. Workbooks and generated data stay on this machine.
-          </span>
+          <span>Local-first. Workbooks and generated data stay on this machine.</span>
           <span>High-risk identifiers masked by default; revealing is local-only and audit-logged.</span>
         </div>
       </footer>
     </div>
+  );
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <Shell>{children}</Shell>
+    </AuthProvider>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Network, Users } from "lucide-react";
+import { RequireAuth } from "@/components/auth";
 
 /**
  * Entity index over the local dataset.
@@ -53,6 +54,7 @@ export default function EntitiesPage() {
   const filter = (key: string) => key.toLowerCase().includes(q.trim().toLowerCase());
 
   return (
+    <RequireAuth>
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Entities</h1>
@@ -128,5 +130,6 @@ export default function EntitiesPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import RecordAvatar from "@/components/record-avatar";
+import { RequireAuth } from "@/components/auth";
 import { useToast } from "@/components/ui/use-toast";
 
 type Hit = {
@@ -100,6 +101,7 @@ export default function SearchPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="space-y-6">
       <section className="pt-6 text-center">
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Record search</h1>
@@ -255,6 +257,7 @@ export default function SearchPage() {
           Install on Android
         </Button>
       </section>
-    </div>
+      </div>
+    </RequireAuth>
   );
 }

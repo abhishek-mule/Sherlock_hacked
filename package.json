@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "auth:setup": "node scripts/set-auth.mjs"
   },
   "dependencies": {
     "@dicebear/core": "^10.7.0",

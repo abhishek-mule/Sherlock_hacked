@@ -35,19 +35,22 @@ npm install
 #     must sit in the repo root — they are gitignored and never uploaded)
 python3 scripts/ingest.py
 
-# 3. start the app
+# 3. create the operator credential (once)
+npm run auth:setup
+
+# 4. start the app
 npm run dev
 ```
 
-Open <http://localhost:3000> and sign in with:
+Create the operator credential once (prompted, never echoed, never stored in source):
 
-```
-username: porus
-password: porus
+```bash
+npm run auth:setup
 ```
 
-You should see the header pill read `124 rec · 178 fld`. If it says **no dataset**, step 2
-did not run or the workbooks were not found.
+Then start the app and open <http://localhost:3000>. You should see the header pill read
+`124 rec · 178 fld`. If it says **no dataset**, the ingest step did not run or the workbooks
+were not found; if it says **no credential**, run `auth:setup`.
 
 ### Step 2 output
 
@@ -86,6 +89,8 @@ data/master-7bt.json       ← 69 records
 data/osint.json            ← 13 records
 data/admissions.json       ← 963 records
 data/reveal-audit.log      ← written when high-risk fields are revealed
+data/auth.json             ← salted hash of the operator credential (gitignored)
+data/session-secret        ← HMAC key for session cookies (gitignored)
 fixtures/synthetic/        ← sanitized sample committed to the repo
 ```
 

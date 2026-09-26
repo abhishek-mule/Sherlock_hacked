@@ -10,6 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentRecord from "@/components/student-record";
 import RecordAvatar from "@/components/record-avatar";
+import Overview from "@/components/overview";
+import Footprint from "@/components/footprint";
+import { RequireAuth } from "@/components/auth";
 import { useToast } from "@/components/ui/use-toast";
 
 type Rec = Record<string, unknown>;
@@ -81,6 +84,7 @@ export default function RecordPage() {
   const matchText = match?.kind ? ` · matched by ${match.kind}` : "";
 
   return (
+    <RequireAuth>
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => router.push("/")} aria-label="Back">
@@ -140,12 +144,22 @@ export default function RecordPage() {
           </p>
         </div>
       ) : (
-        <Tabs defaultValue="record">
+        <Tabs defaultValue="overview">
           <TabsList>
-            <TabsTrigger value="record">Record</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="record">All fields</TabsTrigger>
+            <TabsTrigger value="footprint">Footprint</TabsTrigger>
             <TabsTrigger value="sources">Sources</TabsTrigger>
             <TabsTrigger value="raw">Raw</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="overview" className="mt-4">
+            <Overview record={rec} />
+          </TabsContent>
+
+          <TabsContent value="footprint" className="mt-4">
+            <Footprint record={rec} />
+          </TabsContent>
 
           <TabsContent value="record" className="mt-4">
             <StudentRecord
@@ -239,6 +253,7 @@ export default function RecordPage() {
         </Link>
         .
       </p>
-    </div>
+      </div>
+    </RequireAuth>
   );
 }

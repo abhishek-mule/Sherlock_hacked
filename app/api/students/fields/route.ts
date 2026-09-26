@@ -1,5 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { cookies } from "next/headers";
+import { COOKIE_NAME, isConfigured, verifySession } from "@/lib/auth";
 
 /** Field groups for rendering the full record as a structured profile. */
 export const dynamic = "force-dynamic";
@@ -113,6 +115,12 @@ const GROUPS: { key: string; label: string; fields: string[] }[] = [
 ];
 
 export async function GET() {
+  if (!isConfigured()) {
+    return Response.json({ ok: false, reason: "not_configured" }, { status: 503 });
+  }
+  if (!verifySession(cookies().get(COOKIE_NAME)?.value)) {
+    return Response.json({ ok: false, reason: "unauthenticated" }, { status: 401 });
+  }
   const file = path.join(process.cwd(), "data", "full-students.json");
   let rows: Row[] = [];
   try {

@@ -57,3 +57,11 @@ bin/sherlock-hacked
 fixtures/private/
 *.pem
 *.key
+data/auth.json
+data/session-secret
+
+# Office / editor lock files
+.~lock.*
+~$*
+*.tmp
+Thumbs.db
